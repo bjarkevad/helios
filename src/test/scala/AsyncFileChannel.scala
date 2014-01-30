@@ -34,7 +34,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     }
   }
   it should "write, without attachment, to a file correctly" in {
-    val file = "./testfile"
+    val file = "./testfile2"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     if(asyncFC.isFailure) assert(false)
     else asyncFC.map { fc =>
