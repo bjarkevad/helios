@@ -29,7 +29,7 @@ object AsyncFileChannel {
       val p: Promise[String] = Promise()
 
       val a = new Array[Byte](afc.size().toInt)
-      def bb: ByteBuffer = ByteBuffer.wrap(a, 0, afc.size().toInt)
+      val bb: ByteBuffer = ByteBuffer.wrap(a, 0, afc.size().toInt)
 
       afc.read(bb, 0, "", CompletionHandler[Integer, String](
         v => p.complete(Try(new String(a))), e => p.failure(e)
