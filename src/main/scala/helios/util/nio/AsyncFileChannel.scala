@@ -32,10 +32,18 @@ object AsyncFileChannel {
       afc.read(bb, 0).asInstanceOf[T]
     }
 
-    def writeS[A](data: String, attachment: A): Future[Int] = {
+    def writeS(data: String): Future[Int] = {
       val p: Promise[Int] = Promise()
+      afc.write(ByteBuffer.wrap(data.getBytes), 0, "", CompletionHandler[Integer, String](
+        v => p.complete(Try(v)), (e, _) => p.failure(e))
+      )
+      p.future
+    }
+
+    def writeS[A](data: String, attachment: A): Future[(Int, A)] = {
+      val p: Promise[(Int, A)] = Promise()
       afc.write(ByteBuffer.wrap(data.getBytes), 0, attachment, CompletionHandler[Integer, A](
-        v => p.complete(Try(v)), e => p.failure(e))
+        v => p.complete(Try(v, attachment)), (e, _) => p.failure((e)))
       )
       p.future
     }
@@ -48,10 +56,10 @@ object FileOps {
 
 object CompletionHandler {
   import java.nio.channels.CompletionHandler
-  def apply[T, A](completedHandler: T => Unit, failedHandler: Throwable => Unit): CompletionHandler[T, A] = {
+  def apply[T, A](completedHandler: T => Unit, failedHandler: (Throwable, A) => Unit): CompletionHandler[T, A] = {
     new CompletionHandler[T, A] {
       override def completed(result: T, attachment: A): Unit = completedHandler(result)
-      override def failed(exc: Throwable, attachment: A): Unit = failedHandler(exc)
+      override def failed(exc: Throwable, attachment: A): Unit = failedHandler(exc, attachment)
     }
   }
 }
