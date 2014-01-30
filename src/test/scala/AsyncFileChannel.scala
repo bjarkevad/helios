@@ -1,30 +1,39 @@
 package helios.util.nio.test
 
 import org.scalatest._
+
 import scala.util.{Success, Failure, Try}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import java.nio.file.{StandardOpenOption, OpenOption}
-
-import helios.util.nio.AsyncFileChannel._
-import helios.util.nio.AsyncFileChannel.AsyncFileChannelOps
-
 import java.nio.ByteBuffer
+
+import helios.util.nio.AsyncFileChannel.AsyncFileChannelOps
 import helios.util.nio.AsyncFileChannel
 import helios.util.nio.FileOps.delete
 
-class AsyncFileChannel extends FunSuite {
-  test("Async file channel") {
+
+class AsyncFileChannelTest extends FlatSpec with Matchers {
+  "AsyncFileChannel" should "write to a file correctly" in {
     val file = "./testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     if(asyncFC.isFailure) assert(false)
     else asyncFC.map { fc =>
       fc.writeS(this.hashCode.toString, "Attachment")
-      assert(io.Source.fromFile(file).getLines().mkString("") === this.hashCode.toString)
-      assert(delete(file))
+        .onComplete {
+          case Success(v) =>
+            val src = io.Source.fromFile(file)
+            src.getLines().mkString("") should be(this.hashCode.toString)
+            src.close()
+            fc.close()
+            delete(file) should be(true)
+          case Failure(e) => assert(false)
+        }
     }
-//    val bb: ByteBuffer = ByteBuffer.wrap(Array[Byte](5))
-//    asyncFC.map(f => f.read(bb, 0))
-//    asyncFC.map(_.close())
-//
-//    asyncFC.map(f => f.readAll[String])
+  }
+  it should "fail if the file path is not accessable" in {
+    val file = "/testfile"
+    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
+    asyncFC.isFailure should be(true)
   }
 }

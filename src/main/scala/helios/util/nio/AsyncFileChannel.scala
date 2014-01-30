@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import collection.JavaConverters.setAsJavaSetConverter
 
 import scala.util.Try
+import scala.concurrent.{Future, Promise}
 
 object AsyncFileChannel {
   def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Try[AsynchronousFileChannel] = {
@@ -31,10 +32,12 @@ object AsyncFileChannel {
       afc.read(bb, 0).asInstanceOf[T]
     }
 
-    def writeS[A](data: String, attachment: A) = {
+    def writeS[A](data: String, attachment: A): Future[Int] = {
+      val p: Promise[Int] = Promise()
       afc.write(ByteBuffer.wrap(data.getBytes), 0, attachment, CompletionHandler[Integer, A](
-        v => println(s"completed: $v"), e => println(s"failed: ${e.printStackTrace()}")
-      ))
+        v => p.complete(Try(v)), e => p.failure(e))
+      )
+      p.future
     }
   }
 }
