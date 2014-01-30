@@ -4,10 +4,11 @@ import java.nio.file.{StandardOpenOption, Paths, OpenOption}
 import java.util.concurrent.{Executors, ExecutorService}
 import java.nio.channels.AsynchronousFileChannel
 import java.nio.ByteBuffer
-import collection.JavaConverters.setAsJavaSetConverter
 
 import scala.util.Try
 import scala.concurrent.{Future, Promise}
+
+import collection.JavaConverters.setAsJavaSetConverter
 
 object AsyncFileChannel {
   def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Try[AsynchronousFileChannel] = {
@@ -30,8 +31,8 @@ object AsyncFileChannel {
       val a = new Array[Byte](afc.size().toInt)
       val bb: ByteBuffer = ByteBuffer.wrap(a, 0, afc.size().toInt)
       Try(afc.read(bb, 0, "", CompletionHandler[Integer, String](
-        v => p.complete(Try(new String(a))), e => p.failure(e)
-      ))) recover {
+        v => p.complete(Try(new String(a))), e => p.failure(e))
+      )) recover {
         case e: Throwable => p.failure(e)
       }
 
@@ -62,7 +63,6 @@ object AsyncFileChannel {
       p.future
     }
   }
-
 }
 
 object FileOps {

@@ -55,7 +55,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     }
   }
 
-  it should "fail to write if the file path is not accessable" in {
+  it should "fail to write if the file path is not accessible" in {
     val file = "/testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     asyncFC.isFailure should be(true)
