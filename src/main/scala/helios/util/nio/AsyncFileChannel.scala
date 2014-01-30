@@ -11,7 +11,6 @@ import scala.concurrent.{Future, Promise}
 
 object AsyncFileChannel {
   def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Try[AsynchronousFileChannel] = {
-
     Try(Paths.get(path)).
       flatMap(f => Try(AsynchronousFileChannel.open(f, setAsJavaSetConverter(openOptions).asJava, executorService)))
   }
@@ -30,27 +29,36 @@ object AsyncFileChannel {
 
       val a = new Array[Byte](afc.size().toInt)
       val bb: ByteBuffer = ByteBuffer.wrap(a, 0, afc.size().toInt)
-
-      afc.read(bb, 0, "", CompletionHandler[Integer, String](
+      Try(afc.read(bb, 0, "", CompletionHandler[Integer, String](
         v => p.complete(Try(new String(a))), e => p.failure(e)
-      ))
+      ))) recover {
+        case e: Throwable => p.failure(e)
+      }
 
       p.future
     }
 
     def writeS(data: String): Future[Int] = {
       val p: Promise[Int] = Promise()
-      afc.write(ByteBuffer.wrap(data.getBytes), 0, "", CompletionHandler[Integer, String](
+
+      Try(afc.write(ByteBuffer.wrap(data.getBytes), 0, "", CompletionHandler[Integer, String](
         v => p.complete(Try(v)), e => p.failure(e))
-      )
+      )) recover {
+        case e: Throwable => p.failure(e)
+      }
+
       p.future
     }
 
     def writeS[A](data: String, attachment: A): Future[(Int, A)] = {
       val p: Promise[(Int, A)] = Promise()
-      afc.write(ByteBuffer.wrap(data.getBytes), 0, attachment, CompletionHandler[Integer, A](
+
+      Try(afc.write(ByteBuffer.wrap(data.getBytes), 0, attachment, CompletionHandler[Integer, A](
         v => p.complete(Try(v, attachment)), e => p.failure(e))
-      )
+      )) recover {
+        case e: Throwable => p.failure(e)
+      }
+
       p.future
     }
   }
