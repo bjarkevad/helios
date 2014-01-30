@@ -18,17 +18,14 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     val file = "./testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     if (asyncFC.isFailure) assert(false)
-    else asyncFC.map {
-      fc =>
-        fc.writeS(this.hashCode.toString, "Attachment")
-          .onComplete {
+    else asyncFC.get.writeS(this.hashCode.toString, "Attachment").onComplete {
           case Success((v, a)) =>
             println(s"value: $v")
             println(s"attachment: $a")
             val src = io.Source.fromFile(file)
             src.getLines().mkString("") should be(this.hashCode.toString)
             src.close()
-            fc.close()
+            asyncFC.get.close()
             delete(file) should be(true)
           case Failure(e) => assert(false)
         }
@@ -39,19 +36,15 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     val file = "./testfile2"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     if (asyncFC.isFailure) assert(false)
-    else asyncFC map {
-      fc =>
-        fc.writeS(this.hashCode.toString)
-          .onComplete {
-          case Success(v) =>
-            println(s"value: $v")
-            val src = io.Source.fromFile(file)
-            src.getLines().mkString("") should be(this.hashCode.toString)
-            src.close()
-            fc.close()
-            delete(file) should be(true)
-          case Failure(e) => assert(false)
-        }
+    else asyncFC.get.writeS(this.hashCode.toString).onComplete {
+      case Success(v) =>
+        println(s"value: $v")
+        val src = io.Source.fromFile(file)
+        src.getLines().mkString("") should be(this.hashCode.toString)
+        src.close()
+        asyncFC.get.close()
+        delete(file) should be(true)
+      case Failure(e) => assert(false)
     }
   }
 
