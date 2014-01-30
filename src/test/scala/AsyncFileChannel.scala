@@ -13,7 +13,7 @@ import helios.util.nio.FileOps.delete
 
 class AsyncFileChannel extends FunSuite {
   test("Async file channel") {
-    val file = "/home/bjarke/testfile"
+    val file = "./testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     if(asyncFC.isFailure) assert(false)
     else asyncFC.map { fc =>
