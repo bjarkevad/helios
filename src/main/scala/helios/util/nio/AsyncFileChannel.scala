@@ -1,6 +1,6 @@
 package helios.util.nio
 
-import java.nio.file.{StandardOpenOption, Paths, OpenOption}
+import java.nio.file.{StandardOpenOption, Paths}
 import java.util.concurrent.{Executors, ExecutorService}
 import java.nio.channels.AsynchronousFileChannel
 import java.nio.ByteBuffer
@@ -24,6 +24,7 @@ object AsyncFileChannel {
     AsyncFileChannel(path, Set(openOption), Executors.newScheduledThreadPool(4))
   }
 
+  //TODO: Rethink naming of operations
   implicit class AsyncFileChannelOps(val afc: AsynchronousFileChannel) {
     def readAll: Future[String] = {
       val p: Promise[String] = Promise()

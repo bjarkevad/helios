@@ -73,17 +73,31 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     }
     else {
       val f = asyncFC.get.readAll
-      f.onComplete {
-        case Success(v) =>
-          println(s"Read: $v")
-          asyncFC.get.close()
-          delete(file)
-        case Failure(e) =>
-          asyncFC.get.close()
-          delete(file)
-      }
-
       Await.result(f, 100 millis) should be("Testfile!")
+      asyncFC.get.close()
+      delete(file)
     }
+  }
+
+  it should "fail to read if OpenOptions are set wrong" in {
+    val file = "./testfile3"
+    val out = new java.io.FileWriter(file)
+    out.write("Testfile!")
+    out.close
+
+    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
+    if (asyncFC.isFailure) {
+      asyncFC.isFailure should be(false)
+    }
+    else {
+      val f = asyncFC.get.readAll
+      (Try(Await.result(f, 100 millis)) match {
+        case Failure(e) => true
+        case _ => false
+      }) should be (true)
+      asyncFC.get.close()
+    }
+
+    delete(file)
   }
 }
