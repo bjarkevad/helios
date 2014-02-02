@@ -31,9 +31,9 @@ class BeagleBoneReader(val flightController: FCComm) extends Actor {
         Try(flightController.read[String]).map {
           self ! LineRead(_)
         } recover {
-          case _ =>
+          case e@_ =>
             running = false
-            self ! ReadError(_)
+            self ! ReadError(e)
         }
       }
     }
