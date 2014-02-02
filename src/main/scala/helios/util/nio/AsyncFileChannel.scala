@@ -11,16 +11,16 @@ import scala.concurrent.{Future, Promise}
 import collection.JavaConverters.setAsJavaSetConverter
 
 object AsyncFileChannel {
-  def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Try[AsynchronousFileChannel] = {
+  def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Option[AsynchronousFileChannel] = {
     Try(Paths.get(path)).
-      flatMap(f => Try(AsynchronousFileChannel.open(f, setAsJavaSetConverter(openOptions).asJava, executorService)))
+      flatMap(f => Try(AsynchronousFileChannel.open(f, setAsJavaSetConverter(openOptions).asJava, executorService))).toOption
   }
 
-  def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption]): Try[AsynchronousFileChannel] = {
+  def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption]): Option[AsynchronousFileChannel] = {
     AsyncFileChannel(path, openOptions, Executors.newScheduledThreadPool(4))
   }
 
-  def apply(path: String, openOption: StandardOpenOption): Try[AsynchronousFileChannel] = {
+  def apply(path: String, openOption: StandardOpenOption): Option[AsynchronousFileChannel] = {
     AsyncFileChannel(path, Set(openOption), Executors.newScheduledThreadPool(4))
   }
 
@@ -64,21 +64,31 @@ object AsyncFileChannel {
       p.future
     }
   }
+
 }
 
 object FileOps {
-  def delete(path: String): Boolean = java.nio.file.Files.deleteIfExists(Paths.get(path))
+
+  import java.nio.file.{Files, Path, attribute}
+
+  def createFile(path: String, attributes: attribute.FileAttribute[_]*): Try[Path] =
+    Try(Files.createFile(Paths.get(path), attributes: _*))
+
+  def deleteIfExists(path: String): Try[Boolean] =
+    Try(Files.deleteIfExists(Paths.get(path)))
 }
 
 object CompletionHandler {
 
   import java.nio.channels.CompletionHandler
 
+  //TODO: Get rid of type parameter A
+  //TODO: Rename type parameters to follow scheme: A, B, C, D?
+  //TODO: Figure out of attachment is needed in the completion handlers?
   def apply[T, A](completedHandler: T => Unit, failedHandler: Throwable => Unit): CompletionHandler[T, A] = {
     new CompletionHandler[T, A] {
       override def completed(result: T, attachment: A): Unit = completedHandler(result)
 
-      //TODO: Figure out of attachment is needed in the failedHandler
       override def failed(exc: Throwable, attachment: A): Unit = failedHandler(exc)
     }
   }
