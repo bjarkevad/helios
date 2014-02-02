@@ -3,8 +3,6 @@
  */
 
 
-package com.helios.core
-
 import akka.actor.Actor
 import akka.actor.Props
 

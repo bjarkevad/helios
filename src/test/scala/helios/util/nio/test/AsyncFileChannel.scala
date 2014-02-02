@@ -11,9 +11,10 @@ import helios.util.nio.AsyncFileChannel
 import helios.util.nio.FileOps._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 
-class AsyncFileChannel extends FlatSpec with Matchers {
+class AsyncFileChannelTests extends FlatSpec with Matchers {
   "AsyncFileChannel" should "write, with attachment, to a file correctly" in {
     val file = "./testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
@@ -64,7 +65,7 @@ class AsyncFileChannel extends FlatSpec with Matchers {
     val file = "./testfile3"
     val out = new java.io.FileWriter(file)
     out.write("Testfile!")
-    out.close
+    out.close()
 
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.READ))
     if (asyncFC.isEmpty) {
@@ -82,7 +83,7 @@ class AsyncFileChannel extends FlatSpec with Matchers {
     val file = "./testfile4"
     val out = new java.io.FileWriter(file)
     out.write("Testfile!")
-    out.close
+    out.close()
 
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
     if (asyncFC.isEmpty) {
@@ -104,7 +105,7 @@ class AsyncFileChannel extends FlatSpec with Matchers {
     val file = "./testfile5"
     val out = new java.io.FileWriter(file)
     out.write("Testfile!")
-    out.close
+    out.close()
 
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
     if (asyncFC.isEmpty) {
