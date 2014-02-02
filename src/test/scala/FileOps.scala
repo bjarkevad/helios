@@ -21,13 +21,13 @@ class FileOps extends FlatSpec with Matchers {
     Files.deleteIfExists(Paths.get(file)) should be(true)
   }
 
-  "FileOps" should "be able to create a file with attributes" in {
+  it should "be able to create a file with attributes" in {
     import collection.JavaConverters._
 
     val file = "./testfile1"
     Files.deleteIfExists(Paths.get(file))
 
-    val path: Path = createFile(file, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))).recover {
+    val path: Path = createFile(file, "rwx------").recover {
       case f: Throwable => {
         println(f)
         Paths.get("Nope")
@@ -42,6 +42,15 @@ class FileOps extends FlatSpec with Matchers {
     expected should be (expected.filter(actual.contains))
 
     Files.deleteIfExists(Paths.get(file)) should be(true)
+  }
+
+  it should "fail to create a file with invalid attributes" in {
+    val file = "./testfile1"
+    Files.deleteIfExists(Paths.get(file))
+
+    val res = createFile(file, "rwxAAAAAA")
+    res.isFailure should be(true)
+    res.failed.get.getClass should be(classOf[java.lang.IllegalArgumentException])
   }
 
   it should "fail if trying to create a file without sufficient permissions" in {

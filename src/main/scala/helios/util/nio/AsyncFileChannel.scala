@@ -70,6 +70,10 @@ object AsyncFileChannel {
 object FileOps {
 
   import java.nio.file.{Files, Path, attribute}
+  import java.nio.file.attribute.PosixFilePermissions
+
+  def createFile(path: String, attributes: String): Try[Path] =
+    Try(Files.createFile(Paths.get(path), PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(attributes))))
 
   def createFile(path: String, attributes: attribute.FileAttribute[_]*): Try[Path] =
     Try(Files.createFile(Paths.get(path), attributes: _*))
