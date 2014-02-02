@@ -1,12 +1,18 @@
 package helios.core.actors
 
 import akka.actor.{ActorRef, Actor, Props}
-import helios.core.flightcontroller.FCComm
-import scala.util.Try
+import helios.core.flightcontroller.{MAVLinkMessage, FCComm}
+import scala.util.{Success, Failure, Try}
 
-case class LineRead(data: String)
+case class MessageRead(data: MAVLinkMessage)
+
+//TODO: Determine data type
 
 case class ReadError(t: Throwable)
+
+case class Write(data: MAVLinkMessage)
+
+//TODO: Determine data type
 
 case class Close()
 
@@ -15,12 +21,13 @@ case class Subscribe(actor: ActorRef)
 case class Unsubscribe(actor: ActorRef)
 
 
+//TODO: Decide if FC should be injected or not.. It probably should..n't..?
 class BeagleBoneReader(val flightController: FCComm) extends Actor {
 
   private var subscribers = Set.empty[ActorRef]
   private val subscribersLock = new Object
 
-  private def broadcast(msg: AnyRef) = subscribersLock synchronized {
+  private def broadcast(msg: Any) = subscribersLock synchronized {
     subscribers foreach (_ ! msg)
   }
 
@@ -28,10 +35,10 @@ class BeagleBoneReader(val flightController: FCComm) extends Actor {
     def readLoop() = {
       var running = true
       while (running) {
-        Try(flightController.read[String]).map {
-          self ! LineRead(_)
-        } recover {
-          case e@_ =>
+        flightController.read match {
+          case Success(m) =>
+            self ! MessageRead(m)
+          case Failure(e) =>
             running = false
             self ! ReadError(e)
         }
@@ -53,9 +60,11 @@ class BeagleBoneReader(val flightController: FCComm) extends Actor {
   }
 
   def receive: Receive = {
-    case LineRead(data) => broadcast(data)
+    case MessageRead(data) => broadcast(data)
 
     case ReadError(e) => throw e //Let it crash!
+
+    case Write(data) => flightController.write(data)
 
     case Subscribe(actor) => subscribersLock synchronized {
       subscribers += actor
