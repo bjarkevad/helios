@@ -5,7 +5,7 @@ import org.scalatest._
 import java.nio.file.{LinkOption, Path, Paths, Files}
 
 import helios.util.nio.FileOps._
-import java.nio.file.attribute.{PosixFilePermissions, PosixFileAttributes}
+import java.nio.file.attribute.PosixFilePermissions
 
 class FileOps extends FlatSpec with Matchers {
   "FileOps" should "be able to create a file without attributes" in {

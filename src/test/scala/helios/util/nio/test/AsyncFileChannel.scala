@@ -2,11 +2,9 @@ package helios.util.nio.test
 
 import org.scalatest._
 
-import scala.util.{Success, Failure, Try}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Try}
 
-import java.nio.file.{StandardOpenOption, OpenOption}
-import java.nio.ByteBuffer
+import java.nio.file.StandardOpenOption
 
 import helios.util.nio.AsyncFileChannel.AsyncFileChannelOps
 import helios.util.nio.AsyncFileChannel
@@ -15,14 +13,14 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-class AsyncFileChannelTest extends FlatSpec with Matchers {
+class AsyncFileChannel extends FlatSpec with Matchers {
   "AsyncFileChannel" should "write, with attachment, to a file correctly" in {
     val file = "./testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
 
     if (asyncFC.isEmpty) assert(false)
     else {
-      val f = asyncFC.get.writeS(this.hashCode.toString, "Attachment")
+      val f = asyncFC.get.writeAsync(this.hashCode.toString, "Attachment")
 
       Await.result(f, 200 millis) match {
         case (value, attachment) =>
@@ -45,7 +43,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
     if (asyncFC.isEmpty) assert(false)
     else {
-      val f = asyncFC.get.writeS(this.hashCode.toString)
+      val f = asyncFC.get.writeAsync(this.hashCode.toString)
 
       Await.result(f, 200 millis) should be(this.hashCode.toString.length)
       asyncFC.get.close()
@@ -73,7 +71,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
       assert(false)
     }
     else {
-      val f = asyncFC.get.readAll
+      val f = asyncFC.get.readAllAsync
       Await.result(f, 100 millis) should be("Testfile!")
       asyncFC.get.close()
       deleteIfExists(file).getOrElse(false) should be(true)
@@ -81,7 +79,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
   }
 
   it should "fail to read if OpenOptions are set wrong" in {
-    val file = "./testfile3"
+    val file = "./testfile4"
     val out = new java.io.FileWriter(file)
     out.write("Testfile!")
     out.close
@@ -91,12 +89,34 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
       asyncFC.isEmpty should be(false)
     }
     else {
-      val f = asyncFC.get.readAll
+      val f = asyncFC.get.readAllAsync
       (Try(Await.result(f, 100 millis)) match {
         case Failure(e) => true
         case _ => false
       }) should be (true)
       asyncFC.get.close()
+    }
+
+    deleteIfExists(file).getOrElse(false) should be(true)
+  }
+
+  it should "fail to read if the AsyncFileChannel is closed" in {
+    val file = "./testfile5"
+    val out = new java.io.FileWriter(file)
+    out.write("Testfile!")
+    out.close
+
+    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
+    if (asyncFC.isEmpty) {
+      asyncFC.isEmpty should be(false)
+    }
+    else {
+      asyncFC.get.close()
+      val f = asyncFC.get.readAllAsync
+      (Try(Await.result(f, 100 millis)) match {
+        case Failure(e: java.nio.channels.ClosedChannelException) => true
+        case _ => false
+      }) should be (true)
     }
 
     deleteIfExists(file).getOrElse(false) should be(true)

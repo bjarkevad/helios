@@ -26,21 +26,24 @@ object AsyncFileChannel {
 
   //TODO: Rethink naming of operations
   implicit class AsyncFileChannelOps(val afc: AsynchronousFileChannel) {
-    def readAll: Future[String] = {
+    def readAllAsync: Future[String] = {
       val p: Promise[String] = Promise()
 
-      val a = new Array[Byte](afc.size().toInt)
-      val bb: ByteBuffer = ByteBuffer.wrap(a, 0, afc.size().toInt)
-      Try(afc.read(bb, 0, "", CompletionHandler[Integer, String](
-        v => p.complete(Try(new String(a))), e => p.failure(e))
-      )) recover {
+      Try(afc.size.toInt).map {
+        s =>
+          val a = new Array[Byte](s)
+          val bb: ByteBuffer = ByteBuffer.wrap(a, 0, s)
+          Try(afc.read(bb, 0, "", CompletionHandler[Integer, String](
+            v => p.complete(Try(new String(a))), e => p.failure(e))
+          ))
+      } recover {
         case e: Throwable => p.failure(e)
       }
 
       p.future
     }
 
-    def writeS(data: String): Future[Int] = {
+    def writeAsync(data: String): Future[Int] = {
       val p: Promise[Int] = Promise()
 
       Try(afc.write(ByteBuffer.wrap(data.getBytes), 0, "", CompletionHandler[Integer, String](
@@ -52,7 +55,7 @@ object AsyncFileChannel {
       p.future
     }
 
-    def writeS[A](data: String, attachment: A): Future[(Int, A)] = {
+    def writeAsync[A](data: String, attachment: A): Future[(Int, A)] = {
       val p: Promise[(Int, A)] = Promise()
 
       Try(afc.write(ByteBuffer.wrap(data.getBytes), 0, attachment, CompletionHandler[Integer, A](
@@ -67,20 +70,17 @@ object AsyncFileChannel {
 
 }
 
-object FileOps {
-
-  import java.nio.file.{Files, Path, attribute}
-  import java.nio.file.attribute.PosixFilePermissions
-
-  def createFile(path: String, attributes: String): Try[Path] =
-    Try(Files.createFile(Paths.get(path), PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(attributes))))
-
-  def createFile(path: String, attributes: attribute.FileAttribute[_]*): Try[Path] =
-    Try(Files.createFile(Paths.get(path), attributes: _*))
-
-  def deleteIfExists(path: String): Try[Boolean] =
-    Try(Files.deleteIfExists(Paths.get(path)))
-}
+//TODO: Remove when determined how to read a file..
+//object Watcher {
+//
+//  import java.nio.file.{WatchService, WatchKey, WatchEvent}
+//
+//  def register(path: String, watcher: WatchService, eventKinds: WatchEvent.Kind[_]*): Try[WatchKey] = {
+//    val path = Paths.get(path)
+//
+//    Try(path.register(watcher, eventKinds: _*))
+//  }
+//}
 
 object CompletionHandler {
 
@@ -96,4 +96,19 @@ object CompletionHandler {
       override def failed(exc: Throwable, attachment: A): Unit = failedHandler(exc)
     }
   }
+}
+
+object FileOps {
+
+  import java.nio.file.{Files, Path, attribute}
+  import java.nio.file.attribute.PosixFilePermissions
+
+  def createFile(path: String, attributes: String): Try[Path] =
+    Try(Files.createFile(Paths.get(path), PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(attributes))))
+
+  def createFile(path: String, attributes: attribute.FileAttribute[_]*): Try[Path] =
+    Try(Files.createFile(Paths.get(path), attributes: _*))
+
+  def deleteIfExists(path: String): Try[Boolean] =
+    Try(Files.deleteIfExists(Paths.get(path)))
 }
