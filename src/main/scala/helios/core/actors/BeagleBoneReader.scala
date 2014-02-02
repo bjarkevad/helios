@@ -4,15 +4,13 @@ import akka.actor.{ActorRef, Actor, Props}
 import helios.core.flightcontroller.{MAVLinkMessage, FCComm}
 import scala.util.{Success, Failure, Try}
 
-case class MessageRead(data: MAVLinkMessage)
-
 //TODO: Determine data type
+case class MessageRead(data: MAVLinkMessage)
 
 case class ReadError(t: Throwable)
 
-case class Write(data: MAVLinkMessage)
-
 //TODO: Determine data type
+case class Write(data: MAVLinkMessage)
 
 case class Close()
 
@@ -27,6 +25,7 @@ class BeagleBoneReader(val flightController: FCComm) extends Actor {
   private var subscribers = Set.empty[ActorRef]
   private val subscribersLock = new Object
 
+  //TODO: Should Akka's own broadcast methods be used?
   private def broadcast(msg: Any) = subscribersLock synchronized {
     subscribers foreach (_ ! msg)
   }
