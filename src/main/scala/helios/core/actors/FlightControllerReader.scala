@@ -45,7 +45,7 @@ class BeagleBoneReader(val flightController: FCComm) extends Actor {
     }
 
     override def run() {
-      flightController.open
+      //flightController.open
       readLoop()
     }
   }
