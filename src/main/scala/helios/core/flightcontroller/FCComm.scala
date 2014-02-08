@@ -1,6 +1,5 @@
 package helios.core.flightcontroller
 
-import com.sun.jna._
 import scala.util.Try
 
 trait _mavLinkMsg {
