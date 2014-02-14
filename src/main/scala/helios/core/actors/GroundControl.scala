@@ -2,10 +2,7 @@ package helios.core.actors
 
 import akka.actor.{ActorRef, Actor}
 import java.net.{InetAddress, DatagramPacket, DatagramSocket}
-import scala.util.{Success, Try}
-import helios.core.actors.GroundControl.Register
 import org.mavlink.messages._
-import helios.core.actors.MessageRead
 import helios.core.actors.GroundControl.Register
 import org.mavlink.messages.common.msg_heartbeat
 
@@ -25,7 +22,10 @@ class GroundControl(val rec: ActorRef) extends Actor {
     val buffer = new Array[Byte](bufSize)
     val socket = new DatagramSocket() //Throws on failure
     val a = InetAddress.getByName("localhost")
-    val packet = new DatagramPacket(buffer, bufSize, a, port)
+//    val b = Array(192.toByte,168.toByte,7.toByte,2.toByte)
+//    val a = InetAddress.getByAddress(b)
+    val rxPacket = new DatagramPacket(buffer, bufSize, a, port)
+    val txPacket = new DatagramPacket(buffer, bufSize, a, port)
 
     val hb = new msg_heartbeat(20, MAV_COMPONENT.MAV_COMP_ID_IMU)
     hb.sequence = 0
@@ -43,16 +43,17 @@ class GroundControl(val rec: ActorRef) extends Actor {
 
       while (running) {
         try {
-          packet.setData(msg)
-          socket.send(packet)
-          socket.receive(packet)
+          txPacket.setData(msg)
+          socket.send(txPacket)
+          Thread.sleep(1000)
+          //socket.receive(rxPacket)
         } catch {
           case e: Throwable =>
             running = false
             throw e // Let it crash
         }
 
-        self ! MessageRead(packet.getData)
+        //self ! MessageRead(rxPacket.getData)
       }
     }
   }
@@ -65,9 +66,11 @@ class GroundControl(val rec: ActorRef) extends Actor {
     udpReader.socket.close()
   }
 
+  import helios.util.ByteConverter._
+
   override def receive: Actor.Receive = {
     case msg@GroundControl.MessageRead(v) =>
-      println(s"received: $v")
+      println(s"received: ${v.byteArrayToHex}")
       rec ! msg
 
     case Register(actor) => println("register!")
