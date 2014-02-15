@@ -16,3 +16,5 @@ libraryDependencies ++= Seq (
   "com.github.jodersky" %% "flow" % "1.1.0"
   //"javax.comm" % "comm" % "3.0-u1"
 )
+
+testOptions in Test += Tests.Argument("-u", "./test-reports/")

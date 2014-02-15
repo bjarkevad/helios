@@ -3,7 +3,6 @@ package helios
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers, FlatSpec}
 
 import com.github.jodersky.flow._
-import akka.io.IO
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import akka.actor.{Props, ActorSystem}
 import helios.core.actors.SerialPort
