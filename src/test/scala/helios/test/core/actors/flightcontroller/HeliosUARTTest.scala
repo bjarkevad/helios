@@ -1,6 +1,6 @@
 package helios.core.actors.flightcontroller
 
-import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers, Ignore}
 
 import com.github.jodersky.flow._
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
@@ -8,6 +8,7 @@ import akka.actor.{Props, ActorSystem}
 
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
 
+@Ignore
 class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
   with FunSuiteLike
   with BeforeAndAfterAll

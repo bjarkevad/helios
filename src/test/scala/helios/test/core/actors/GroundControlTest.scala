@@ -1,5 +1,5 @@
 package helios.test.core.actors
-import org.scalatest.{FunSuiteLike, BeforeAndAfterAll, ShouldMatchers}
+import org.scalatest.{Ignore, FunSuiteLike, BeforeAndAfterAll, ShouldMatchers}
 import akka.actor.{Props, ActorSystem}
 import akka.testkit.{ImplicitSender, TestProbe, TestKit}
 import helios.core.actors.GroundControl
@@ -7,6 +7,7 @@ import concurrent.duration._
 
 import scala.language.postfixOps
 
+@Ignore
 class GroundControlTest extends TestKit(ActorSystem("GroundControlTest"))
   with FunSuiteLike
   with BeforeAndAfterAll

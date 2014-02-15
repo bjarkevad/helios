@@ -63,6 +63,8 @@ class FileOpsTest extends FlatSpec with Matchers {
       }
       case _ => "Something wrong happened"
     }.get.toString should be("Nope")
+
+    deleteIfExists(file)
   }
 
   it should "be able to delete a file if it exists" in {
