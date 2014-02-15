@@ -1,4 +1,4 @@
-package helios
+package helios.core.actors.flightcontroller
 
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 
@@ -7,9 +7,8 @@ import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import akka.actor.{Props, ActorSystem}
 
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
-import helios.core.actors.flightcontroller.HeliosUART
 
-class SerialPortTest extends TestKit(ActorSystem("SerialPort"))
+class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
   with FunSuiteLike
   with BeforeAndAfterAll
   with Matchers
