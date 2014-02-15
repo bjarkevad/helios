@@ -1,14 +1,13 @@
 package helios
 
-import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers, FlatSpec}
+import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
 
 import com.github.jodersky.flow._
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import akka.actor.{Props, ActorSystem}
-import helios.core.actors.SerialPort
-import akka.util.ByteString
-import helios.core.actors.SerialPort.WriteStuff
-import concurrent.duration._
+
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
+import helios.core.actors.flightcontroller.HeliosUART
 
 class SerialPortTest extends TestKit(ActorSystem("SerialPort"))
   with FunSuiteLike
@@ -28,9 +27,8 @@ class SerialPortTest extends TestKit(ActorSystem("SerialPort"))
     val probe = TestProbe()
 
     internal.InternalSerial.debug(true)
-    val sp = system.actorOf(Props(new SerialPort(settings)))
+    val sp = system.actorOf(Props(new HeliosUART(settings)))
 
-    probe.send(sp, WriteStuff(ByteString("Test".getBytes())))
+    probe.send(sp, WriteData("test"))
   }
-
 }

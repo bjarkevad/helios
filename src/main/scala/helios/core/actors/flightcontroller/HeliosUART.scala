@@ -1,7 +1,6 @@
-package helios.core.actors
+package helios.core.actors.flightcontroller
 
 import akka.actor._
-import akka.actor.ActorSystem
 import akka.actor.Terminated
 import akka.io.IO
 import akka.util.ByteString
@@ -13,10 +12,9 @@ import com.github.jodersky.flow.{Serial, SerialSettings}
 import com.github.jodersky.flow.Serial.CommandFailed
 import com.github.jodersky.flow.Serial.Opened
 
-import helios.core.actors.SerialPort._
+import helios.core.actors.flightcontroller.FlightControllerMessages._
 
-
-class SerialPort(settings: SerialSettings) extends Actor {
+class HeliosUART(settings: SerialSettings) extends Actor {
   import context._
 
   override def preStart() = {
@@ -42,30 +40,28 @@ class SerialPort(settings: SerialSettings) extends Actor {
     case Received(data) =>
       println(s"Received data: ${formatData(data)}")
 
+    case WriteData(data) =>
+      val d = ByteString(data.getBytes)
+      println(s"Writing: ${formatData(d)}")
+      operator ! Write(d, WroteData(d))
+
+    case WroteData(data) =>
+      println(s"Wrote data: ${formatData(data)}")
+
+    case WriteMAVLink(msg) =>
+
+
     case Terminated(`operator`) =>
       println("Operator terminated")
       context stop self
-
-    case WriteStuff(data) =>
-      println(s"Writing: ${formatData(data)}")
-      operator ! Serial.Write(data,Wrote(data))
-
-    case Wrote(data) =>
-      println(s"Wrote data: ${formatData(data)}")
 
     case Closed =>
       println("Closed serialport")
       context stop self
   }
-
 }
 
-object SerialPort {
-  case class Wrote(data: ByteString) extends Event
-  case class WriteStuff(data: ByteString) extends Event
-  //case class Write(data: ByteString) extends Event
-
-  def apply(settings: SerialSettings) = Props(classOf[SerialPort], settings)
-
-  private def formatData(data: ByteString) = data.mkString("[", ",", "]") + " " + (new String(data.toArray, "UTF-8"))
+object HeliosUART {
+  def apply(settings: SerialSettings): Props = Props(classOf[HeliosUART], settings)
 }
+

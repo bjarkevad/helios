@@ -1,4 +1,4 @@
-package helios.util.nio.test
+package helios.test.util.nio
 
 import org.scalatest._
 
@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
-class AsyncFileChannelTests extends FlatSpec with Matchers {
+class AsyncFileChannelTest extends FlatSpec with Matchers {
   "AsyncFileChannel" should "write, with attachment, to a file correctly" in {
     val file = "./testfile"
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))

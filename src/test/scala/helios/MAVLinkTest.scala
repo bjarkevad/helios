@@ -1,4 +1,4 @@
-package helios
+package helios.test
 
 import org.scalatest.{Matchers, FlatSpec}
 import org.mavlink.messages
@@ -7,10 +7,7 @@ import org.mavlink.messages._
 import org.mavlink.MAVLinkReader
 import helios.mavlink.MAVLinkScala.MsgToScala
 
-/**
- * Created by bjarke on 2/5/14.
- */
-class mavlinktest extends FlatSpec with Matchers {
+class MAVLinkTest extends FlatSpec with Matchers {
 
   "mavlink" should "work" in {
 
