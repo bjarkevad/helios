@@ -21,4 +21,4 @@ libraryDependencies ++= Seq (
 
 testOptions in Test += Tests.Argument("-u", "./test-reports/")
 
-scalacOptions += Seq("-feature", "-deprecation")
+scalacOptions ++= Seq("-feature", "-deprecation")
