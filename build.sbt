@@ -13,6 +13,10 @@ resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 libraryDependencies ++= Seq (
   "org.scalatest" %% "scalatest" % "2.0" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.2.3",
+  "com.typesafe.akka" %% "akka-testkit" % "2.2.3",
   "net.java.dev.jna" % "jna" % "4.0.0",
-  "org.scalaz.stream" %% "scalaz-stream" % "0.3.1"
+  "com.github.jodersky" %% "flow" % "1.1.0"
+  //"javax.comm" % "comm" % "3.0-u1"
 )
+
+testOptions in Test += Tests.Argument("-u", "./test-reports/")
