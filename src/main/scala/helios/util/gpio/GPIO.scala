@@ -8,6 +8,7 @@ import helios.util.gpio.GPIOPin.GPIOPin
 import java.nio.file.StandardOpenOption
 
 import scala.concurrent.Await
+import scala.util.Try
 
 object GPIOPin extends Enumeration {
   type GPIOPin = Value
@@ -37,7 +38,7 @@ object GPIO {
   private val unexport = gpioDir + "unexport"
   private val gpioPrefix = "gpio"
 
-  private def ex(gpioPin: GPIOPin, file: String) = {
+  private def ex(gpioPin: GPIOPin, file: String): GPIO = {
     val swPin = toSwPin(gpioPin)
     val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
     asyncFC.map(a => Await.result(a.writeAsync(swPin), 5 millis)) //TODO: Blocking or not?
@@ -48,11 +49,11 @@ object GPIO {
     gpioDir + gpioPrefix + toSwPin(gpioPin)
   }
 
-  def Export(gpioPin: GPIOPin): GPIO = ex(gpioPin, export)
+  def Export(gpioPin: GPIOPin): Try[GPIO] = Try(ex(gpioPin, export))
 
-  def Unexport(gpioPin: GPIOPin): GPIO = ex(gpioPin, unexport)
+  def Unexport(gpioPin: GPIOPin): Try[GPIO] = Try(ex(gpioPin, unexport))
 
-  def IsExported(gpio: GPIO): Boolean = exists(gpio.dir).getOrElse(false)
+  def IsExported(gpio: GPIO): Boolean = exists(gpio.dir)
 
   def SetDirection(gpio: GPIO, input: Boolean): Boolean = ???
 

@@ -112,7 +112,7 @@ object FileOps {
   def deleteIfExists(path: String): Try[Boolean] =
     Try(Files.deleteIfExists(Paths.get(path)))
 
-  def exists(path: String): Try[Boolean] = {
-    Try(Files.exists(Paths.get(path)))
+  def exists(path: String): Boolean = {
+    Try(Files.exists(Paths.get(path))).getOrElse(false)
   }
 }
