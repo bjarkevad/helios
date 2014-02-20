@@ -9,6 +9,8 @@ import scala.util.Try
 import scala.concurrent.{Future, Promise}
 
 import collection.JavaConverters.setAsJavaSetConverter
+import collection.mutable.Buffer
+import java.nio.charset.StandardCharsets
 
 object AsyncFileChannel {
   def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Option[AsynchronousFileChannel] = {
@@ -114,5 +116,14 @@ object FileOps {
 
   def exists(path: String): Boolean = {
     Try(Files.exists(Paths.get(path))).getOrElse(false)
+  }
+
+  def writeLines(path: String, data: String): Try[Path] = {
+    Try(Files.write(Paths.get(path), data.getBytes(StandardCharsets.UTF_8), StandardOpenOption.WRITE))
+  }
+
+  def readLines(path: String): Try[Buffer[String]] = {
+    import collection.JavaConversions._
+    Try(Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8))
   }
 }

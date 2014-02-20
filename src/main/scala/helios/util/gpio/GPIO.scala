@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption
 
 import scala.concurrent.Await
 import scala.util.Try
+import scala.io.Source
 
 object GPIOPin extends Enumeration {
   type GPIOPin = Value
@@ -19,12 +20,11 @@ object GPIOPin extends Enumeration {
 case class GPIO(pin: GPIOPin, dir: String)
 
 object GPIO {
+
   import GPIOPin._
-  import scala.concurrent.duration._
-  import scala.language.postfixOps
 
   def toSwPin(gpioPin: GPIOPin) = {
-     gpioPin match {
+    gpioPin match {
       case P8_14 => "10"
       case P8_15 => "15"
       case P8_16 => "14"
@@ -38,32 +38,59 @@ object GPIO {
   private val unexport = gpioDir + "unexport"
   private val gpioPrefix = "gpio"
 
+
+  private def getFullDir(gpioPin: GPIOPin): String = gpioDir + gpioPrefix + toSwPin(gpioPin)
+
+  private def getFullDir(gpio: GPIO): String = getFullDir(gpio.pin)
+
+  private def getDirectionDir(gpioPin: GPIOPin): String = getFullDir(gpioPin) + "/direction"
+
+  private def getDirectionDir(gpio: GPIO): String = getDirectionDir(gpio.pin)
+
+  private def getValueDir(gpioPin: GPIOPin): String = getFullDir(gpioPin) + "/value"
+
+  private def getValueDir(gpio: GPIO): String = getValueDir(gpio.pin)
+
   private def ex(gpioPin: GPIOPin, file: String): GPIO = {
-    val swPin = toSwPin(gpioPin)
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
-    asyncFC.map(a => Await.result(a.writeAsync(swPin), 5 millis)) //TODO: Blocking or not?
-    GPIO(gpioPin, toFullDir(gpioPin))
+    writeLines(file, toSwPin(gpioPin))
+
+    GPIO(gpioPin, getFullDir(gpioPin))
   }
 
-  private def toFullDir(gpioPin: GPIOPin) = {
-    gpioDir + gpioPrefix + toSwPin(gpioPin)
+  def export(gpioPin: GPIOPin): Try[GPIO] = Try(ex(gpioPin, export))
+
+  def export(gpio: GPIO): Try[GPIO] = export(gpio.pin)
+
+  def unexport(gpioPin: GPIOPin): Try[GPIO] = Try(ex(gpioPin, unexport))
+
+  def unexport(gpio: GPIO): Try[GPIO] = unexport(gpio.pin)
+
+  def isExported(gpio: GPIO): Boolean = exists(gpio.dir)
+
+  def setDirection(gpio: GPIO, input: Boolean): Boolean = {
+    val dir = input match {
+      case true => "in"
+      case false => "out"
+    }
+
+    writeLines(getDirectionDir(gpio), dir).isSuccess
   }
 
-  def Export(gpioPin: GPIOPin): Try[GPIO] = Try(ex(gpioPin, export))
+  def getDirection(gpio: GPIO): Option[String] = {
+    readLines(getDirectionDir(gpio)).map(_.find(_.nonEmpty)).toOption.flatten
+  }
 
-  def Unexport(gpioPin: GPIOPin): Try[GPIO] = Try(ex(gpioPin, unexport))
+  def setValue(gpio: GPIO, value: Int): Boolean = {
+    writeLines(getValueDir(gpio), value.toString).isSuccess
+  }
 
-  def IsExported(gpio: GPIO): Boolean = exists(gpio.dir)
+  def getValue(gpio: GPIO): Try[String] = {
+    readLines(getValueDir(gpio)) map (_ mkString(" "))
+  }
 
-  def SetDirection(gpio: GPIO, input: Boolean): Boolean = ???
-
-  def SetValue(gpio: GPIO, value: Int): Boolean = ???
-
-  def GetValue(gpio: GPIO, value: Int): Int = ???
-
-  def SetEdge(gpio: GPIO, edge: String): Int = ???
-
-  def Open(gpio: GPIO): Boolean = ???
-
-  def Close(gpio: GPIO): Boolean = ???
+//  private def SetEdge(gpio: GPIO, edge: String): Int = ???
+//
+//  private def Open(gpio: GPIO): Boolean = ???
+//
+//  private def Close(gpio: GPIO): Boolean = ???
 }
