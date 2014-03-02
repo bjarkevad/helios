@@ -1,5 +1,5 @@
 @startuml
-skin BlueModern
+'skin BlueModern
 skinparam backgroundColor #F4F4F4
 hide footbox
 
@@ -17,26 +17,40 @@ box "Core-Runtime"
     participant HeliosUART as HU <<Actor>>
 end box
 
-    participant UART <<Hardware>>
+participant UART <<Hardware>>
 
-U -> A: Subscribe("status messages")
-A -> O: allocates
+activate U
+U -> A: Subscribe(MessageType)
+activate A
+A -> O: allocate
+O --> A: ref: Subject
+A -> A: store(ref, id)
+
 A --> U: subject: Subject
-A -> CH: Subscribe("status messages")
-CH -> R: Subscribe("status messages")
-
+A -> CH: Subscribe(MessageType, id)
+activate CH
+CH -> R: Subscribe(MessageType, id)
+activate R
 
 loop Read Loop
+activate UART
 UART <-]: Pkg: Byte[]
 UART -> HU:  Pkg
+activate HU
 HU -> MLC: convert(Pkg)
+activate MLC
 HU <-- MLC: convertedPkg: MAVLinkMsg
+deactivate MLC
 HU -> R: msg: MAVLinkMsg
+deactivate HU
 R -> R: sendToSubscribers(msg)
 opt if subscribed
-R -> CH: msg: MAVLinkMsg
-CH -> A: msg: MAVLinkMsg
+R -> CH: (msg, id): MAVLinkMsg
+deactivate R
+CH -> A: (msg, id): MAVLinkMsg
+deactivate CH
 A -> O: onNext(msg)
+deactivate A
 O -> U: msg
 
 end opt
