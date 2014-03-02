@@ -9,15 +9,9 @@ import scala.util.Success
 @Ignore
 class GPIO extends FlatSpec with Matchers {
   "GPIO" should "export, verify and unexport correctly" in {
-
     val gpio = export(GPIOPin.P8_14)
 
-    gpio match {
-      case Success(GPIO(GPIOPin.P8_14, _)) =>
-      case _ => assert(false)
-    }
-
-    gpio.isSuccess should be(true)
+   gpio.isSuccess should be(true)
 
     gpio map {
       g =>

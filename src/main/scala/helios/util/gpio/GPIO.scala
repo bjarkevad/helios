@@ -77,7 +77,9 @@ object GPIO {
   }
 
   def getDirection(gpio: GPIO): Option[String] = {
-    readLines(getDirectionDir(gpio)).map(_.find(_.nonEmpty)).toOption.flatten
+    readLines(getDirectionDir(gpio)).
+      map(_.find(_.nonEmpty)).
+      toOption.flatten
   }
 
   def setValue(gpio: GPIO, value: Int): Boolean = {
