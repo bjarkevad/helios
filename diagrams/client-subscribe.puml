@@ -1,0 +1,45 @@
+@startuml
+skin BlueModern
+skinparam backgroundColor #F4F4F4
+hide footbox
+
+actor "API User" as U
+
+box "API"
+participant "Subject" as O <<Observable>>
+participant "API" as A <<Library>>
+end box
+
+box "Core-Runtime"
+    participant ClientHandler as CH <<Actor>>
+    participant Receptionist as R <<Actor>>
+    participant "MAVLink Converter" as MLC <<Library>>
+    participant HeliosUART as HU <<Actor>>
+end box
+
+    participant UART <<Hardware>>
+
+U -> A: Subscribe("status messages")
+A -> O: allocates
+A --> U: subject: Subject
+A -> CH: Subscribe("status messages")
+CH -> R: Subscribe("status messages")
+
+
+loop Read Loop
+UART <-]: Pkg: Byte[]
+UART -> HU:  Pkg
+HU -> MLC: convert(Pkg)
+HU <-- MLC: convertedPkg: MAVLinkMsg
+HU -> R: msg: MAVLinkMsg
+R -> R: sendToSubscribers(msg)
+opt if subscribed
+R -> CH: msg: MAVLinkMsg
+CH -> A: msg: MAVLinkMsg
+A -> O: onNext(msg)
+O -> U: msg
+
+end opt
+end loop
+
+@enduml

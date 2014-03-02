@@ -1,0 +1,29 @@
+@startuml
+skin BlueModern
+skinparam backgroundColor #F4F4F4
+hide footbox
+'''''
+
+actor "API User" as User
+participant "API" as Client <<Library>>
+
+box "Core-Runtime"
+    participant Receptionist <<Actor>>
+    participant ClientHandler <<Actor>>
+end box
+
+User -> Client: Connect
+activate Client
+Client -> Receptionist: Register(client: ActorRef): Msg
+
+activate Receptionist
+Receptionist -> Receptionist: new ClientHandler(client: ActorRef)
+Receptionist --> ClientHandler: Allocates
+deactivate Receptionist
+
+activate ClientHandler
+ClientHandler --> Client: [OnStart] Registered: Msg
+deactivate ClientHandler
+
+Client --> User: Connected
+@enduml
