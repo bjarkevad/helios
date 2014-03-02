@@ -28,8 +28,8 @@ class HeliosUART(settings: SerialSettings) extends Actor {
 
   override def receive: Receive = {
     case CommandFailed(cmd, reason) =>
-    case Opened(s, o) => {
-      val operator = sender
+    case Opened(settings, operator) => {
+      //val operator = sender
       context become opened(operator)
       context watch operator
       operator ! Register(self)
@@ -41,15 +41,14 @@ class HeliosUART(settings: SerialSettings) extends Actor {
       println(s"Received data: ${formatData(data)}")
 
     case WriteData(data) =>
-      val d = ByteString(data.getBytes)
-      println(s"Writing: ${formatData(d)}")
-      operator ! Write(d, WroteData(d))
+      val dataBs = ByteString(data.getBytes)
+      //println(s"Writing: ${formatData(dataBs)}")
+      operator ! Write(dataBs, WroteData(dataBs))
 
     case WroteData(data) =>
-      println(s"Wrote data: ${formatData(data)}")
+      //println(s"Wrote data: ${formatData(data)}")
 
     case WriteMAVLink(msg) =>
-
 
     case Terminated(`operator`) =>
       println("Operator terminated")

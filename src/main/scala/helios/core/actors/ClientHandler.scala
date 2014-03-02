@@ -1,8 +1,7 @@
 package helios.core.actors
 
-import akka.actor.Actor
-import akka.actor.Props
+import akka.actor.{ActorRef, Actor}
 
-class ClientHandler extends Actor {
+class ClientHandler(client: ActorRef) extends Actor {
   def receive: Actor.Receive = ???
 }
