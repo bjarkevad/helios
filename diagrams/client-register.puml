@@ -1,5 +1,5 @@
 @startuml
-skin BlueModern
+'skin BlueModern
 skinparam backgroundColor #F4F4F4
 hide footbox
 '''''
