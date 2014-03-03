@@ -14,14 +14,8 @@ class ClientReceptionist extends Actor {
   /**Contains a map from ClientHandler to client */
   var clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
 
-  var groundControlHandler = ActorRef.noSender
-
-//  ActorRef =
-//    context.actorOf(ClientHandler(
-//      context.actorOf(GroundControl())))
-
   override def preStart() = {
-
+    context.actorOf(GroundControl())
   }
 
   override def postStop() = {
@@ -35,7 +29,6 @@ class ClientReceptionist extends Actor {
       //First clienthandler is primary
       if(clients.isEmpty) {
         ch ! BecomePrimary()
-        groundControlHandler ! BecomeSecondary()
       }
 
       clients put (ch, c) match {

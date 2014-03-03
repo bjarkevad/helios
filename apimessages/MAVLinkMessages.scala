@@ -2,7 +2,7 @@ package helios.apimessages
 
 import akka.util.ByteString
 import org.mavlink.messages.MAVLinkMessage
-import helios.apimessages._
+import helios.apimessages.{PutRequest}
 
 
 object MAVLinkMessages {
