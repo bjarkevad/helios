@@ -4,6 +4,7 @@ import akka.actor.{Props, ActorRef, Actor}
 import helios.apimessages.CoreMessages.{NotAllowed, UnregisterClient, Registered}
 import helios.core.actors.ClientHandler.{BecomePrimary, BecomeSecondary}
 import helios.apimessages.MAVLinkMessages.RawMAVLink
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object ClientHandler {
   case class BecomePrimary()
