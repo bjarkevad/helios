@@ -1,18 +1,19 @@
 package helios.core.actors
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Props, ActorRef, Actor}
 import java.net.{InetAddress, DatagramPacket, DatagramSocket}
 import org.mavlink.messages._
-import helios.core.actors.GroundControl.Register
 import org.mavlink.messages.common.msg_heartbeat
 
-object GroundControl {
-  case class MessageRead(data: Array[Byte])
-  case class Register(actor: ActorRef)
-}
-class GroundControl(val rec: ActorRef) extends Actor {
+import GroundControl._
 
-  import GroundControl.MessageRead
+object GroundControl {
+  case class UdpMsgRead(data: Array[Byte])
+  case class Register(actor: ActorRef)
+
+  def apply(): Props = Props(classOf[GroundControl])
+}
+class GroundControl extends Actor {
 
   private object udpReader extends Thread {
     //TODO: inject values
@@ -22,8 +23,7 @@ class GroundControl(val rec: ActorRef) extends Actor {
     val buffer = new Array[Byte](bufSize)
     val socket = new DatagramSocket() //Throws on failure
     val a = InetAddress.getByName("localhost")
-//    val b = Array(192.toByte,168.toByte,7.toByte,2.toByte)
-//    val a = InetAddress.getByAddress(b)
+
     val rxPacket = new DatagramPacket(buffer, bufSize, a, port)
     val txPacket = new DatagramPacket(buffer, bufSize, a, port)
 
@@ -53,13 +53,14 @@ class GroundControl(val rec: ActorRef) extends Actor {
             throw e // Let it crash
         }
 
-        //self ! MessageRead(rxPacket.getData)
+        self ! UdpMsgRead(rxPacket.getData)
       }
     }
   }
 
   override def preStart() = {
     udpReader.start()
+    //schedule heartbeat
   }
 
   override def postStop() = {
@@ -69,9 +70,11 @@ class GroundControl(val rec: ActorRef) extends Actor {
   import helios.util.ByteConverter._
 
   override def receive: Actor.Receive = {
-    case msg@GroundControl.MessageRead(v) =>
+    case msg@UdpMsgRead(v) =>
       println(s"received: ${v.byteArrayToHex}")
-      rec ! msg
+      //val m = convertToMAVLink(msg)
+      //handler ! m
+      context.parent ! msg
 
     case Register(actor) => println("register!")
     case _ => println("received something unexpected")

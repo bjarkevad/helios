@@ -7,20 +7,36 @@ import helios.apimessages.CoreMessages.RegisterClient
 import akka.actor.Terminated
 import helios.apimessages.CoreMessages.UnregisterClient
 import helios.apimessages.CoreMessages.Unregistered
-import helios.core.actors.ClientHandler.BecomePrimary
+import helios.core.actors.ClientHandler.{BecomeSecondary, BecomePrimary}
 
 class ClientReceptionist extends Actor {
 
-  //ClientHandler -> Client
+  /**Contains a map from ClientHandler to client */
   var clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
+
+  var groundControlHandler = ActorRef.noSender
+
+//  ActorRef =
+//    context.actorOf(ClientHandler(
+//      context.actorOf(GroundControl())))
+
+  override def preStart() = {
+
+  }
+
+  override def postStop() = {
+
+  }
 
   def receive: Actor.Receive = {
     case RegisterClient(c) =>
       val ch = context.actorOf(Props(new ClientHandler(c)))
 
       //First clienthandler is primary
-      if(clients.isEmpty)
+      if(clients.isEmpty) {
         ch ! BecomePrimary()
+        groundControlHandler ! BecomeSecondary()
+      }
 
       clients put (ch, c) match {
         case None => sender ! NotRegistered(c)

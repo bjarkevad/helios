@@ -23,6 +23,6 @@ class GroundControlTest extends TestKit(ActorSystem("GroundControlTest"))
     val g = system.actorOf(Props(new GroundControl(probe.ref)))
 
     probe.send(g, GroundControl.Register(probe.ref))
-    probe.expectMsg(15 seconds, GroundControl.MessageRead(_))
+    probe.expectMsg(15 seconds, GroundControl.UdpMsgRead(_))
   }
 }
