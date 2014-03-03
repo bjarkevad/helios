@@ -8,6 +8,11 @@ ideaExcludeFolders += ".idea"
 
 ideaExcludeFolders += ".idea_modules"
 
+lazy val apimessages = project
+
+lazy val coreruntime = project.in(file("."))
+  .dependsOn(apimessages)
+
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
 libraryDependencies ++= Seq (
