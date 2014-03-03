@@ -8,6 +8,7 @@ import akka.actor.Terminated
 import helios.apimessages.CoreMessages.UnregisterClient
 import helios.apimessages.CoreMessages.Unregistered
 import helios.core.actors.ClientHandler.{BecomeSecondary, BecomePrimary}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ClientReceptionist extends Actor {
 

@@ -1,12 +1,12 @@
 package helios.core.actors
 
-import akka.actor.{Props, ActorRef, Actor}
+import akka.actor._
 import java.net.{InetAddress, DatagramPacket, DatagramSocket}
 import org.mavlink.messages._
 import org.mavlink.messages.common.msg_heartbeat
 
-import GroundControl._
 import scala.collection.mutable.Buffer
+import helios.core.actors.GroundControl.UdpPacketRead
 
 object GroundControl {
   case class UdpPacketRead(data: Array[Byte])
@@ -14,6 +14,10 @@ object GroundControl {
   def apply(): Props = Props(classOf[GroundControl])
 }
 class GroundControl extends Actor {
+  import helios.apimessages.CoreMessages._
+  import concurrent.duration._
+  import language.postfixOps
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   private object udpReader extends Thread {
     //TODO: inject values
@@ -67,36 +71,36 @@ class GroundControl extends Actor {
     udpReader.socket.close()
   }
 
-
   val packetCache: Buffer[UdpPacketRead] = Buffer.empty
 
-  def receive: Actor.Receive = unregistered
+  def receive: Actor.Receive = unregistered orElse failure
 
-  import helios.apimessages.CoreMessages._
+
 
   def unregistered: Actor.Receive = {
     case msg@UdpPacketRead(v) =>
-      context.become(awaitingRegistration)
-      context.parent ! RegisterClient(self)
+      val c = context.system.scheduler.schedule(0 millis, 100 millis, context.parent, RegisterClient(self))
+      context become awaitingRegistration(c).orElse(failure)
       self ! msg
-
-      //println(s"received: ${v.byteArrayToHex}")
-      //val m = convertToMAVLink(msg)
-      //handler ! m
-      context.parent ! msg
-
-    case _ => println("received something unexpected")
   }
 
-  def awaitingRegistration: Actor.Receive = {
+  def awaitingRegistration(registerTask: Cancellable): Actor.Receive = {
     case msg@UdpPacketRead(v) =>
-      packetCache.append(msg)
+      packetCache append msg
 
     case Registered(c) if c == self =>
+      registerTask.cancel()
+      context become registered(sender).orElse(failure)
+      packetCache foreach(self ! _)
+      packetCache clear()
   }
 
-  def registered: Actor.Receive = {
-    ???
+  def registered(handler: ActorRef): Actor.Receive = {
+    case msg@UdpPacketRead(v) =>
+      //convertToMAVLink(v)
   }
 
+  def failure: Actor.Receive = {
+    case m@_ => println(s"GroundControl received something unexpected: $m")
+  }
 }
