@@ -6,10 +6,10 @@ import org.mavlink.messages._
 import org.mavlink.messages.common.msg_heartbeat
 
 import GroundControl._
+import scala.collection.mutable.Buffer
 
 object GroundControl {
-  case class UdpMsgRead(data: Array[Byte])
-  case class Register(actor: ActorRef)
+  case class UdpPacketRead(data: Array[Byte])
 
   def apply(): Props = Props(classOf[GroundControl])
 }
@@ -53,7 +53,7 @@ class GroundControl extends Actor {
             throw e // Let it crash
         }
 
-        self ! UdpMsgRead(rxPacket.getData)
+        self ! UdpPacketRead(rxPacket.getData)
       }
     }
   }
@@ -67,17 +67,36 @@ class GroundControl extends Actor {
     udpReader.socket.close()
   }
 
-  import helios.util.ByteConverter._
 
-  override def receive: Actor.Receive = {
-    case msg@UdpMsgRead(v) =>
-      println(s"received: ${v.byteArrayToHex}")
+  val packetCache: Buffer[UdpPacketRead] = Buffer.empty
+
+  def receive: Actor.Receive = unregistered
+
+  import helios.apimessages.CoreMessages._
+
+  def unregistered: Actor.Receive = {
+    case msg@UdpPacketRead(v) =>
+      context.become(awaitingRegistration)
+      context.parent ! RegisterClient(self)
+      self ! msg
+
+      //println(s"received: ${v.byteArrayToHex}")
       //val m = convertToMAVLink(msg)
       //handler ! m
       context.parent ! msg
 
-    case Register(actor) => println("register!")
     case _ => println("received something unexpected")
+  }
+
+  def awaitingRegistration: Actor.Receive = {
+    case msg@UdpPacketRead(v) =>
+      packetCache.append(msg)
+
+    case Registered(c) if c == self =>
+  }
+
+  def registered: Actor.Receive = {
+    ???
   }
 
 }
