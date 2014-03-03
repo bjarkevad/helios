@@ -1,6 +1,6 @@
 package helios.core.actors
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Props, ActorRef, Actor}
 import helios.apimessages.CoreMessages.{NotAllowed, UnregisterClient, Registered}
 import helios.core.actors.ClientHandler.{BecomePrimary, BecomeSecondary}
 import helios.apimessages.MAVLinkMessages.RawMAVLink
@@ -8,9 +8,11 @@ import helios.apimessages.MAVLinkMessages.RawMAVLink
 object ClientHandler {
   case class BecomePrimary()
   case class BecomeSecondary()
+
+  def apply(client: ActorRef): Props = Props(new ClientHandler(client))
 }
 
-class ClientHandler(client: ActorRef) extends Actor {
+class ClientHandler(val client: ActorRef) extends Actor {
   override def preStart() = {
     client ! Registered(client)
   }
