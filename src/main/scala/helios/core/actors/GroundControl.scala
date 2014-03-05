@@ -1,36 +1,30 @@
 package helios.core.actors
 
 import akka.actor._
-import java.net.{InetAddress, DatagramPacket, DatagramSocket}
+import akka.io.{UdpConnected, IO}
 import org.mavlink.messages._
 import org.mavlink.messages.common.msg_heartbeat
-
+import org.mavlink.MAVLinkReader
+import java.net.InetSocketAddress
 import scala.collection.mutable.Buffer
-import helios.core.actors.GroundControl.UdpPacketRead
+import scala.util.{Success, Failure, Try}
+import helios.apimessages.MAVLinkMessages._
+import org.slf4j.LoggerFactory
+import akka.util.ByteString
 
 object GroundControl {
-  case class UdpPacketRead(data: Array[Byte])
-
   def apply(): Props = Props(classOf[GroundControl])
 }
+
 class GroundControl extends Actor {
+
   import helios.apimessages.CoreMessages._
   import concurrent.duration._
   import language.postfixOps
   import scala.concurrent.ExecutionContext.Implicits.global
+  import context.system
 
-  private object udpReader extends Thread {
-    //TODO: inject values
-    val port = 14550
-    val bufSize = 16
-    //TODO: Figure size out dynamically? Read the header first, then determine the packet size from there
-    val buffer = new Array[Byte](bufSize)
-    val socket = new DatagramSocket() //Throws on failure
-    val a = InetAddress.getByName("localhost")
-
-    val rxPacket = new DatagramPacket(buffer, bufSize, a, port)
-    val txPacket = new DatagramPacket(buffer, bufSize, a, port)
-
+  lazy val heartbeat: ByteString = {
     val hb = new msg_heartbeat(20, MAV_COMPONENT.MAV_COMP_ID_IMU)
     hb.sequence = 0
     hb.`type` = MAV_TYPE.MAV_TYPE_QUADROTOR
@@ -40,67 +34,85 @@ class GroundControl extends Actor {
     hb.system_status = MAV_STATE.MAV_STATE_STANDBY
     hb.mavlink_version = 3
 
-    val msg = hb.encode()
-
-    override def run() = {
-      var running = true
-
-      while (running) {
-        try {
-          txPacket.setData(msg)
-          socket.send(txPacket)
-          Thread.sleep(1000)
-          //socket.receive(rxPacket)
-        } catch {
-          case e: Throwable =>
-            running = false
-            throw e // Let it crash
-        }
-
-        self ! UdpPacketRead(rxPacket.getData)
-      }
-    }
+    ByteString(hb.encode())
   }
 
+  val heartbeatFreq: FiniteDuration = 1.second
+  lazy val packetCache: Buffer[UdpConnected.Received] = Buffer.empty
+  lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
+  lazy val udpManager = IO(UdpConnected)
+  lazy val mlReader = new MAVLinkReader()
+
+  def convertToMAVLink(buffer: ByteString): Try[MAVLinkMessage] =
+    Try(mlReader.getNextMessage(buffer.toArray, buffer.length))
+
   override def preStart() = {
-    udpReader.start()
-    //schedule heartbeat
+    logger.debug("Started")
+    udpManager ! UdpConnected.Connect(self, new InetSocketAddress("localhost", 14550))
   }
 
   override def postStop() = {
-    udpReader.socket.close()
+
   }
 
-  val packetCache: Buffer[UdpPacketRead] = Buffer.empty
+  def unbound: Actor.Receive = unbd orElse unknown
 
-  def receive: Actor.Receive = unregistered orElse failure
+  def unregistered(connection: ActorRef): Actor.Receive =
+    unReg(connection) orElse sharedUdp(connection) orElse unknown
 
+  def awaitingRegistration(connection: ActorRef, registerTask: Cancellable): Actor.Receive =
+    awReg(connection, registerTask) orElse sharedUdp(connection) orElse unknown
 
+  def registered(connection: ActorRef, handler: ActorRef): Actor.Receive =
+    reg(connection, handler) orElse sharedUdp(connection) orElse unknown
 
-  def unregistered: Actor.Receive = {
-    case msg@UdpPacketRead(v) =>
-      val c = context.system.scheduler.schedule(0 millis, 100 millis, context.parent, RegisterClient(self))
-      context become awaitingRegistration(c).orElse(failure)
+  def receive: Actor.Receive = unbound
+
+  def unbd: Actor.Receive = {
+    case UdpConnected.Connected =>
+      context become unregistered(sender)
+      context.system.scheduler.schedule(0 millis, heartbeatFreq, sender, UdpConnected.Send(heartbeat))
+      logger.debug("UdpConnected.Connected")
+  }
+
+  def unReg(connection: ActorRef): Actor.Receive = {
+    case msg@UdpConnected.Received(v) =>
+      val reg = context.system.scheduler.schedule(0 millis, 100 millis, context.parent, RegisterClient(self))
+      context become awaitingRegistration(connection, reg)
+      logger.debug("became 'awaitingRegistration'")
       self ! msg
   }
 
-  def awaitingRegistration(registerTask: Cancellable): Actor.Receive = {
-    case msg@UdpPacketRead(v) =>
+  def awReg(connection: ActorRef, registerTask: Cancellable): Actor.Receive = {
+    case msg@UdpConnected.Received(v) =>
       packetCache append msg
+      logger.debug("added message to cache")
 
     case Registered(c) if c == self =>
       registerTask.cancel()
-      context become registered(sender).orElse(failure)
-      packetCache foreach(self ! _)
+      context become registered(connection, sender)
+      logger.debug("became 'registered'")
+      packetCache foreach (self ! _)
       packetCache clear()
+
+    case Registered(c) => logger.debug("received Registered() with wrong parameter")
   }
 
-  def registered(handler: ActorRef): Actor.Receive = {
-    case msg@UdpPacketRead(v) =>
-      //convertToMAVLink(v)
+  def reg(connection: ActorRef, handler: ActorRef): Actor.Receive = {
+    case msg@UdpConnected.Received(v) =>
+      convertToMAVLink(v) match {
+        case Success(m) => handler ! RawMAVLink(m)
+        case Failure(e) => logger.warn(s"received an unknown message over UDP: $v")
+      }
   }
 
-  def failure: Actor.Receive = {
-    case m@_ => println(s"GroundControl received something unexpected: $m")
+  def sharedUdp(connection: ActorRef): Actor.Receive = {
+    case d@UdpConnected.Disconnect => connection ! d
+
+    case UdpConnected.Disconnected => self ! PoisonPill
+  }
+
+  def unknown: Actor.Receive = {
+    case m@_ => logger.warn(s"received something unexpected: $m")
   }
 }

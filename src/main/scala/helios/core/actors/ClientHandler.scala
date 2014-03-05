@@ -5,6 +5,7 @@ import helios.apimessages.CoreMessages.{NotAllowed, UnregisterClient, Registered
 import helios.core.actors.ClientHandler.{BecomePrimary, BecomeSecondary}
 import helios.apimessages.MAVLinkMessages.RawMAVLink
 import scala.concurrent.ExecutionContext.Implicits.global
+import org.slf4j.LoggerFactory
 
 object ClientHandler {
   case class BecomePrimary()
@@ -14,8 +15,12 @@ object ClientHandler {
 }
 
 class ClientHandler(val client: ActorRef) extends Actor {
+
+  lazy val logger = LoggerFactory.getLogger(classOf[ClientHandler])
+
   override def preStart() = {
     client ! Registered(client)
+    logger.debug("Started")
   }
 
   override def postStop() = {
@@ -29,7 +34,7 @@ class ClientHandler(val client: ActorRef) extends Actor {
   def pri: Actor.Receive = {
     case BecomeSecondary() => context.become(secondary)
 
-    case RawMAVLink(msg) => //Write to UART
+    case RawMAVLink(msg) => logger.debug(s"received MAVLink: $msg")//Write to UART
   }
 
   def sec: Actor.Receive = {
