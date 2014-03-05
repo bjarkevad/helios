@@ -1,22 +1,23 @@
 package helios.core.actors
 
 import akka.actor.{Terminated, Props, ActorRef, Actor}
-import helios.apimessages.CoreMessages._
 import scala.collection.mutable
-import helios.apimessages.CoreMessages.RegisterClient
-import akka.actor.Terminated
-import helios.apimessages.CoreMessages.UnregisterClient
-import helios.apimessages.CoreMessages.Unregistered
-import helios.core.actors.ClientHandler.{BecomeSecondary, BecomePrimary}
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import helios.apimessages.CoreMessages._
+import helios.core.actors.ClientHandler.{BecomeSecondary, BecomePrimary}
+
+import org.slf4j.LoggerFactory
 
 class ClientReceptionist extends Actor {
 
-  /**Contains a map from ClientHandler to client */
+  /**Contains a map from ClientHandler to Client */
   var clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
+  val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
   override def preStart() = {
     context.actorOf(GroundControl())
+    logger.debug("Started")
   }
 
   override def postStop() = {
@@ -33,7 +34,7 @@ class ClientReceptionist extends Actor {
       }
 
       clients put (ch, c) match {
-        case None => sender ! NotRegistered(c)
+        case None =>
         case Some(_) =>
       }
 
