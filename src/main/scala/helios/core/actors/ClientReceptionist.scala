@@ -26,7 +26,7 @@ class ClientReceptionist extends Actor {
 
   def receive: Actor.Receive = {
     case RegisterClient(c) =>
-      val ch = context.actorOf(Props(new ClientHandler(c)))
+      val ch = context.actorOf(ClientHandler(c, self))
 
       //First clienthandler is primary
       if(clients.isEmpty) {
