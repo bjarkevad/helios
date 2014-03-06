@@ -11,7 +11,7 @@ object ClientHandler {
   case class BecomePrimary()
   case class BecomeSecondary()
 
-  def apply(client: ActorRef): Props = Props(new ClientHandler(client))
+  def apply(client: ActorRef): Props = Props(classOf[ClientHandler], client)
 }
 
 class ClientHandler(val client: ActorRef) extends Actor {
