@@ -6,7 +6,7 @@ import org.mavlink.messages.MAVLinkMessage
 
 object FlightControllerMessages {
 
-  case class WroteData(data: ByteString) extends Event
+  case class WriteAck(data: ByteString) extends Event
 
   case class WriteData(data: String) extends Event
 

@@ -1,6 +1,6 @@
 package helios.core.actors.flightcontroller
 
-import akka.actor._
+import akka.actor.{Props, ActorRef, Actor}
 import akka.actor.Terminated
 import akka.io.IO
 import akka.util.ByteString
@@ -12,24 +12,30 @@ import com.github.jodersky.flow.{Serial, SerialSettings}
 import com.github.jodersky.flow.Serial.CommandFailed
 import com.github.jodersky.flow.Serial.Opened
 
+import org.slf4j.LoggerFactory
 import helios.core.actors.flightcontroller.FlightControllerMessages._
 
-class HeliosUART(settings: SerialSettings) extends Actor {
-  import context._
+object HeliosUART {
+  def apply(serialManager: ActorRef, settings: SerialSettings): Props =
+    Props(new HeliosUART(serialManager, settings))
+}
+
+class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
+
+  lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
   override def preStart() = {
-    println("Prestart")
-    IO(Serial) ! Serial.Open(settings)
+    logger.debug("Prestart")
+    uartManager ! Serial.Open(settings)
   }
 
   override def postStop() = {
-    println("Poststop")
+    logger.debug("postStop")
   }
 
   override def receive: Receive = {
     case CommandFailed(cmd, reason) =>
-    case Opened(settings, operator) => {
-      //val operator = sender
+    case Opened(set, operator) => {
       context become opened(operator)
       context watch operator
       operator ! Register(self)
@@ -38,29 +44,26 @@ class HeliosUART(settings: SerialSettings) extends Actor {
 
   def opened(operator: ActorRef): Receive = {
     case Received(data) =>
-      println(s"Received data: ${formatData(data)}")
+      logger.debug(s"Received data: ${formatData(data)}")
 
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)
-      //println(s"Writing: ${formatData(dataBs)}")
-      operator ! Write(dataBs, WroteData(dataBs))
+      operator ! Write(dataBs, WriteAck(dataBs))
 
-    case WroteData(data) =>
-      //println(s"Wrote data: ${formatData(data)}")
+    case WriteAck(data) =>
+      logger.debug(s"WroteData(${formatData(data)}))")
 
     case WriteMAVLink(msg) =>
 
     case Terminated(`operator`) =>
-      println("Operator terminated")
+      logger.debug("Operator terminated")
       context stop self
 
     case Closed =>
-      println("Closed serialport")
+      logger.debug("Closed serialport")
       context stop self
   }
 }
 
-object HeliosUART {
-  def apply(settings: SerialSettings): Props = Props(classOf[HeliosUART], settings)
-}
+
 

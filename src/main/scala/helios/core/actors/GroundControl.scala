@@ -6,7 +6,7 @@ import org.mavlink.messages._
 import org.mavlink.messages.common.msg_heartbeat
 import org.mavlink.MAVLinkReader
 import java.net.InetSocketAddress
-import scala.collection.mutable.Buffer
+import scala.collection.mutable
 import scala.util.{Success, Failure, Try}
 import helios.apimessages.MAVLinkMessages._
 import org.slf4j.LoggerFactory
@@ -38,7 +38,7 @@ class GroundControl extends Actor {
   }
 
   val heartbeatFreq: FiniteDuration = 1.second
-  lazy val packetCache: Buffer[UdpConnected.Received] = Buffer.empty
+  lazy val packetCache: mutable.Buffer[UdpConnected.Received] = mutable.Buffer.empty
   lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
   lazy val udpManager = IO(UdpConnected)
   lazy val mlReader = new MAVLinkReader()
