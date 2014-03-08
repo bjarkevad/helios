@@ -4,7 +4,7 @@ import akka.actor._
 import akka.io.{UdpConnected, IO}
 import org.mavlink.messages._
 import org.mavlink.messages.common.msg_heartbeat
-import org.mavlink.MAVLinkReader
+import helios.util.MAVLink._
 import java.net.InetSocketAddress
 import scala.collection.mutable
 import scala.util.{Success, Failure, Try}
@@ -13,10 +13,10 @@ import org.slf4j.LoggerFactory
 import akka.util.ByteString
 
 object GroundControl {
-  def apply(): Props = Props(classOf[GroundControl])
+  def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager))
 }
 
-class GroundControl extends Actor {
+class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
   import helios.apimessages.CoreMessages._
   import concurrent.duration._
@@ -38,13 +38,9 @@ class GroundControl extends Actor {
   }
 
   val heartbeatFreq: FiniteDuration = 1.second
-  lazy val packetCache: mutable.Buffer[UdpConnected.Received] = mutable.Buffer.empty
+  //lazy val packetCache: mutable.Buffer[UdpConnected.Received] = mutable.Buffer.empty
   lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
-  lazy val udpManager = IO(UdpConnected)
-  lazy val mlReader = new MAVLinkReader()
-
-  def convertToMAVLink(buffer: ByteString): Try[MAVLinkMessage] =
-    Try(mlReader.getNextMessage(buffer.toArray, buffer.length))
+  //lazy val udpManager = IO(UdpConnected)
 
   override def preStart() = {
     logger.debug("Started")
@@ -55,64 +51,72 @@ class GroundControl extends Actor {
 
   }
 
-  def unbound: Actor.Receive = unbd orElse unknown
+  def unbound: Receive = unbd orElse unknown
 
-  def unregistered(connection: ActorRef): Actor.Receive =
+  def unregistered(connection: ActorRef): Receive =
     unReg(connection) orElse sharedUdp(connection) orElse unknown
 
-  def awaitingRegistration(connection: ActorRef, registerTask: Cancellable): Actor.Receive =
+  def awaitingRegistration(connection: ActorRef, registerTask: Cancellable): Receive =
     awReg(connection, registerTask) orElse sharedUdp(connection) orElse unknown
 
-  def registered(connection: ActorRef, handler: ActorRef): Actor.Receive =
+  def registered(connection: ActorRef, handler: ActorRef): Receive =
     reg(connection, handler) orElse sharedUdp(connection) orElse unknown
 
-  def receive: Actor.Receive = unbound
+  def receive: Receive = unbound
 
-  def unbd: Actor.Receive = {
+  def unbd: Receive = {
     case UdpConnected.Connected =>
       context become unregistered(sender)
       context.system.scheduler.schedule(0 millis, heartbeatFreq, sender, UdpConnected.Send(heartbeat))
       logger.debug("UdpConnected.Connected")
   }
 
-  def unReg(connection: ActorRef): Actor.Receive = {
+  def unReg(connection: ActorRef): Receive = {
+    //Only register with Receptionist when a message is received from the GC
     case msg@UdpConnected.Received(v) =>
+      stash()
       val reg = context.system.scheduler.schedule(0 millis, 100 millis, context.parent, RegisterClient(self))
       context become awaitingRegistration(connection, reg)
       logger.debug("became 'awaitingRegistration'")
-      self ! msg
   }
 
-  def awReg(connection: ActorRef, registerTask: Cancellable): Actor.Receive = {
+  def awReg(connection: ActorRef, registerTask: Cancellable): Receive = {
     case msg@UdpConnected.Received(v) =>
-      packetCache append msg
-      logger.debug("added message to cache")
+      stash()
+      logger.debug("added message to stash")
 
     case Registered(c) if c == self =>
+      unstashAll()
       registerTask.cancel()
       context become registered(connection, sender)
       logger.debug("became 'registered'")
-      packetCache foreach (self ! _)
-      packetCache clear()
 
-    case Registered(c) => logger.debug("received Registered() with wrong parameter")
+    case Registered(c) =>
+      logger.debug("received Registered() with wrong parameter")
   }
 
-  def reg(connection: ActorRef, handler: ActorRef): Actor.Receive = {
+  def reg(connection: ActorRef, handler: ActorRef): Receive = {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
-        case Success(m) => handler ! RawMAVLink(m)
-        case Failure(e) => logger.warn(s"received an unknown message over UDP: $v")
+        case Success(m: MAVLinkMessage) =>
+          logger.debug(s"received MAVLink: $m")
+          handler ! RawMAVLink(m)
+
+        case Failure(e: Throwable) =>
+          logger.warn(s"received an unknown message over UDP")
+
+        case _ =>
+          logger.warn("huh")
       }
   }
 
-  def sharedUdp(connection: ActorRef): Actor.Receive = {
+  def sharedUdp(connection: ActorRef): Receive = {
     case d@UdpConnected.Disconnect => connection ! d
 
     case UdpConnected.Disconnected => self ! PoisonPill
   }
 
-  def unknown: Actor.Receive = {
+  def unknown: Receive = {
     case m@_ => logger.warn(s"received something unexpected: $m")
   }
 }

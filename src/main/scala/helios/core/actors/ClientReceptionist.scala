@@ -8,6 +8,7 @@ import helios.apimessages.CoreMessages._
 import helios.core.actors.ClientHandler.{BecomeSecondary, BecomePrimary}
 
 import org.slf4j.LoggerFactory
+import akka.io.{IO, UdpConnected}
 
 class ClientReceptionist extends Actor {
 
@@ -16,7 +17,8 @@ class ClientReceptionist extends Actor {
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
   override def preStart() = {
-    context.actorOf(GroundControl())
+    import context.system
+    context.actorOf(GroundControl.props(IO(UdpConnected)))
     logger.debug("Started")
   }
 
@@ -24,7 +26,7 @@ class ClientReceptionist extends Actor {
 
   }
 
-  def receive: Actor.Receive = {
+  def receive: Receive = {
     case RegisterClient(c) =>
       val ch = context.actorOf(ClientHandler(c, self))
 

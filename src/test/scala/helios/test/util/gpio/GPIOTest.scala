@@ -7,7 +7,7 @@ import helios.util.gpio.GPIO._
 import scala.util.Success
 
 @Ignore
-class GPIO extends FlatSpec with Matchers {
+class GPIOTest extends FlatSpec with Matchers {
   "GPIO" should "export, verify and unexport correctly" in {
     val gpio = export(GPIOPin.P8_14)
 
