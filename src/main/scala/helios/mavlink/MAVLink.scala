@@ -1,4 +1,4 @@
-package helios.util
+package helios.mavlink
 
 import akka.util.ByteString
 import scala.util.{Failure, Success, Try}

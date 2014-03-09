@@ -2,7 +2,7 @@ package helios.test.util.gpio
 
 import org.scalatest._
 
-import helios.util.gpio.{GPIOPin}
+import helios.util.gpio.GPIOPin
 import helios.util.gpio.GPIO._
 import scala.util.Success
 

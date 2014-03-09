@@ -13,10 +13,9 @@ class FileOpsTest extends FlatSpec with Matchers {
     Files.deleteIfExists(Paths.get(file))
 
     createFile(file).recover {
-      case f: Throwable => {
+      case f: Throwable =>
         println(f)
         "Nope"
-      }
     }.get.toString should be(file)
     Files.deleteIfExists(Paths.get(file)) should be(true)
   }
@@ -28,10 +27,9 @@ class FileOpsTest extends FlatSpec with Matchers {
     Files.deleteIfExists(Paths.get(file))
 
     val path: Path = createFile(file, "rwx------").recover {
-      case f: Throwable => {
+      case f: Throwable =>
         println(f)
         Paths.get("Nope")
-      }
     }.get
 
     path.toString should be(file)
@@ -57,10 +55,9 @@ class FileOpsTest extends FlatSpec with Matchers {
     val file = "/rootfile"
 
     createFile(file).recover {
-      case f: java.nio.file.AccessDeniedException => {
+      case f: java.nio.file.AccessDeniedException =>
         println(f)
         "Nope"
-      }
       case _ => "Something wrong happened"
     }.get.toString should be("Nope")
 
