@@ -87,7 +87,7 @@ object GPIO {
   }
 
   def getValue(gpio: GPIO): Try[String] = {
-    readLines(getValueDir(gpio)) map (_ mkString(" "))
+    readLines(getValueDir(gpio)) map (_ mkString " ")
   }
 
 //  private def SetEdge(gpio: GPIO, edge: String): Int = ???

@@ -1,18 +1,15 @@
 package helios.core.actors.flightcontroller
 
 import akka.actor._
-import akka.io.IO
 import akka.util.ByteString
 
 import com.github.jodersky.flow.Serial._
-import com.github.jodersky.flow.Serial.Received
-import com.github.jodersky.flow.Serial.Register
-import com.github.jodersky.flow.{Serial, SerialSettings}
-import com.github.jodersky.flow.Serial.CommandFailed
-import com.github.jodersky.flow.Serial.Opened
+import com.github.jodersky.flow.Serial
+
 
 import org.slf4j.LoggerFactory
 import helios.core.actors.flightcontroller.FlightControllerMessages._
+
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
 import com.github.jodersky.flow.Serial.Write
 import com.github.jodersky.flow.Serial.Received
@@ -47,11 +44,10 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
       logger.warn(s"Failed to register: $reason")
       throw reason //LET IT CRASH!
 
-    case Opened(set, operator) => {
+    case Opened(set, operator) =>
       context become opened(operator)
       context watch operator
       operator ! Register(self)
-    }
   }
 
   def opened(operator: ActorRef): Receive = {
@@ -73,7 +69,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
       operator ! Write(ByteString(msg.encode()))
 
     case Terminated(`operator`) =>
-      logger.debug("Operator terminated")
+      logger.warn("Serialport operator closed unexpectedly")
       context stop self
 
     case Closed =>

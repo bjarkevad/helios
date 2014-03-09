@@ -18,12 +18,8 @@ class ClientReceptionist extends Actor {
 
   override def preStart() = {
     import context.system
-    context.actorOf(GroundControl.props(IO(UdpConnected)))
+    context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
     logger.debug("Started")
-  }
-
-  override def postStop() = {
-
   }
 
   def receive: Receive = {
@@ -36,8 +32,8 @@ class ClientReceptionist extends Actor {
       }
 
       clients put (ch, c) match {
-        case None =>
-        case Some(_) =>
+        case None => //Entry is new
+        case Some(_) => //Entry already exists
       }
 
     case UnregisterClient(c) =>
