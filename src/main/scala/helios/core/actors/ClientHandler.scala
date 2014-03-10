@@ -28,7 +28,6 @@ object DefaultMAVLinkHandler {
   def apply(uas: ActorRef) = new DefaultMAVLinkHandler(uas)
 }
 
-
 object ClientHandler {
   case class BecomePrimary()
   case class BecomeSecondary()
@@ -58,9 +57,10 @@ class ClientHandler(val client: ActorRef, mlHandler: MAVLinkHandler) extends Act
   def pri: Actor.Receive = {
     case BecomeSecondary() => context.become(secondary)
 
-    case RawMAVLink(msg) =>
+    case m@RawMAVLink(msg) =>
       logger.debug(s"received MAVLink: $msg")//Write to UART
-      mlHandler.handle(msg)
+      //mlHandler.handle(msg)
+      context.parent ! m
   }
 
   def sec: Actor.Receive = {
