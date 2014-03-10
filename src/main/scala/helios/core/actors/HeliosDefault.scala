@@ -1,25 +1,27 @@
 package helios.core.actors
 
 import akka.actor._
-import helios.api.HeliosAPI
+import akka.pattern.ask
 import helios.apimessages.CoreMessages._
-import helios.api._
 import rx.Observable
 import scala.concurrent.{Promise, Future}
 import scala.util.Try
 
 import java.lang.System.currentTimeMillis
+import org.slf4j.LoggerFactory
+import helios.apimessages.MAVLinkMessages.RawMAVLink
+import helios.api.{HeliosPrivate, HeliosAPI}
+import helios.api.HeliosAPI._
 
-/* Copyright 2014 Bjarke Vad Andersen, <bjarke.vad90@gmail.com> */
-
-class HeliosDefault(val name: String, val clientReceptionist: ActorRef) extends HeliosAPI
+class HeliosDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef) extends HeliosAPI
 with TypedActor.PreStart
 with TypedActor.PostStop
 with TypedActor.Receiver {
-  //def this() = this("Helios")
 
   lazy val context: ActorContext = TypedActor.context
+  lazy val logger = LoggerFactory.getLogger(classOf[HeliosDefault])
 
+  var sysStatus: Option[SystemStatus] = None
 
   override def preStart() = {
     //context.parent ! RegisterClient(context.self)
@@ -29,9 +31,15 @@ with TypedActor.Receiver {
     //clientReceptionist ! PoisonPill
   }
 
+  override def updateSystemStatus(status: SystemStatus): Unit = {
+    logger.debug("updateSystemStatus")
+    sysStatus = Some(status)
+  }
+
   override def onReceive(msg: Any, sender: ActorRef) = {
     msg match {
-      case _ =>
+      case m@RawMAVLink(_) => client ! m
+      case _ => logger.warn("API received something unknown")
     }
   }
 
@@ -90,7 +98,6 @@ with TypedActor.Receiver {
   //TODO: Rename? //*
   override def setAttitude(attitude: Attitude, altitude: Altitude): Future[CommandResult] = ???
 
-  //*
   override def setAttitude(attitude: Attitude, thrust: Thrust): Future[CommandResult] = ???
 
   override def attitude: Future[Attitude] = ???
@@ -102,9 +109,7 @@ with TypedActor.Receiver {
 
   override def takeControl(): Unit = ???
 
-  override def systemStatus: Future[SystemStatus] = ???
 
-  //*
   override def disarmMotors: Future[CommandResult] = ???
 
   override def armMotors: Future[CommandResult] = ???
@@ -121,7 +126,10 @@ with TypedActor.Receiver {
 
   override def getFlightMode: Future[FlightMode] = ???
 
-  //* heartbeat
+  override def systemStatus: Option[SystemStatus] = {
+    sysStatus
+  }
+    //clientReceptionist ?
   override def systemStatusStream: Observable[SystemStatus] = ???
 }
 

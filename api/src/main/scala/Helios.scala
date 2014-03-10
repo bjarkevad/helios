@@ -6,49 +6,44 @@ import scala.concurrent.{Await, Future}
 import rx.Observable
 import akka.actor._
 import akka.pattern.ask
+import org.mavlink.messages.MAV_STATE
 
 
-trait Location
+object HeliosAPI {
 
-trait Distance
 
-trait SystemStatus
+  trait Location
+  trait Distance
+  case class SystemStatus(mavtype: Int, autopilot: Int, state: Int, seq: Int = -1)
+  trait Altitude
+  trait Attitude
+  trait Degree
+  trait CommandResult
 
-trait Altitude
+  case class CommandSuccess() extends CommandResult
+  case class CommandFailure() extends CommandResult
 
-trait Attitude
+  trait MissionResult
+  trait Mission
+  trait MissionItem
+  trait ParameterId
+  trait ParameterValue
+  trait SystemInformation
+  trait FlightMode
+  trait Thrust
+  trait ControlMode
 
-trait Degree
+  case class ByThrust() extends ControlMode
+  case class ByAltitude() extends ControlMode
 
-trait CommandResult
-
-case class CommandSuccess() extends CommandResult
-case class CommandFailure() extends CommandResult
-
-trait MissionResult
-
-trait Mission
-
-//A collection of MissionItems
-trait MissionItem
-
-trait ParameterId
-
-trait ParameterValue
-
-trait SystemInformation
-
-trait ControlMode
-
-trait FlightMode
-
-trait Thrust
-
-case class ByThrust() extends ControlMode
-
-case class ByAltitude() extends ControlMode
+}
 
 trait HeliosAPI {
+
+  import HeliosAPI._
+
+  //PRIVATE
+  def updateSystemStatus(status: SystemStatus): Unit
 
   def ping(ms: Long): Unit
 
@@ -62,33 +57,29 @@ trait HeliosAPI {
 
   def setEmergencyHandler(f: => Unit): Unit
 
-  def calibrateSensors: Future[CommandResult] //*
+  def calibrateSensors: Future[CommandResult]
 
   def armMotors: Future[CommandResult]
 
-  //*
-  def disarmMotors: Future[CommandResult] //*
+  def disarmMotors: Future[CommandResult]
 
-  def systemStatus: Future[SystemStatus]
+  def systemStatus: Option[SystemStatus]
 
   //* heartbeat
-  def systemStatusStream: Observable[SystemStatus] //*
+  def systemStatusStream: Observable[SystemStatus]
 
   def takeControl(): Unit
 
-  //Application controlled
-  def leaveControl(): Unit //Controlled by joystick or autopilot
+  def leaveControl(): Unit
 
-  def altitude: Future[Altitude] //*
+  def altitude: Future[Altitude]
   //  def setAltitude(altitude: Altitude): Future[CommandResult] //setAltitude(1 meter) //* //Fixed heigth
 
   def attitude: Future[Attitude]
 
-  //*
   def setAttitude(attitude: Attitude, thrust: Thrust): Future[CommandResult]
 
-  //TODO: Rename? //*
-  def setAttitude(attitude: Attitude, altitude: Altitude): Future[CommandResult] //TODO: Rename? //*
+  def setAttitude(attitude: Attitude, altitude: Altitude): Future[CommandResult]
 
   def setParameter(id: ParameterId, value: ParameterValue): Unit
 
@@ -131,24 +122,9 @@ trait HeliosAPI {
   def newMission(mission: Mission): Unit
 }
 
-class HeliosApplication extends Actor {
-  lazy val Helios: HeliosAPI = {
-    import scala.concurrent.duration._
+trait HeliosPrivate {
+  import HeliosAPI._
 
-    println("Started API App")
-    val clientRecep =
-      context.actorSelection("akka.tcp://Main@localhost:2552/user/app")
-
-    val f = ask(clientRecep, RegisterAPIClient(self))(3 seconds).mapTo[HeliosAPI]
-
-    Await.result(f, 4 seconds)
-  }
-
-  override def preStart() = {
-
-  }
-
-  override def receive: Actor.Receive = {
-    case _ =>
-  }
 }
+
+

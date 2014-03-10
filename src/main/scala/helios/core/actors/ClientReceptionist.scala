@@ -10,7 +10,7 @@ import helios.core.actors.ClientHandler.{BecomeSecondary, BecomePrimary}
 
 import org.slf4j.LoggerFactory
 import akka.io.{IO, UdpConnected}
-import org.mavlink.messages.MAVLinkMessage
+import org.mavlink.messages.{MAV_STATE, MAVLinkMessage}
 import helios.core.actors.flightcontroller.{MockSerial, HeliosUART}
 import helios.apimessages.CoreMessages.RegisterClient
 import helios.apimessages.CoreMessages.NotRegistered
@@ -23,10 +23,11 @@ import akka.actor.Terminated
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import scala.Some
 import helios.apimessages.CoreMessages.TestMsg
-import helios.api.HeliosAPI
+import helios.api.{HeliosPrivate, HeliosAPI}
+import org.mavlink.messages.common.msg_heartbeat
+import helios.api.HeliosAPI.SystemStatus
 
 //import helios.apimessages.MAVLinkMessages.{PublishMAVLink, RawMAVLink}
-
 
 
 object ClientReceptionist {
@@ -73,15 +74,21 @@ class ClientReceptionist extends Actor {
 
     case RegisterAPIClient(c) =>
       val hd: HeliosAPI =
-        TypedActor(context.system).typedActorOf(TypedProps(classOf[HeliosAPI], new HeliosDefault("HeliosDefault", self)))
+        TypedActor(context.system)
+          .typedActorOf(TypedProps(
+          classOf[HeliosAPI], new HeliosDefault("HeliosDefault", self, sender)))
 
       apiClients += hd
-
       sender ! hd
 
-    case PublishMAVLink(m) =>
+    case m@PublishMAVLink(ml) =>
       //Everyone gets everything..
-      clients.values foreach (_ ! RawMAVLink(m))
+      if(ml.messageType == 0) {
+        val hb = ml.asInstanceOf[msg_heartbeat]
+        apiClients foreach (_.updateSystemStatus(SystemStatus(hb.`type`, hb.autopilot, hb.system_status, hb.sequence)))
+      }
+
+      clients.values foreach (_ ! m)
 
     case RawMAVLink(m) =>
       //Send to UART
