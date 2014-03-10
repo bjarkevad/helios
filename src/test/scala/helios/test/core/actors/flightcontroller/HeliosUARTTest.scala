@@ -42,7 +42,7 @@ with ImplicitSender {
     val recep = TestProbe()
 
     //internal.InternalSerial.debug(true)
-    val sp = system.actorOf(HeliosUART(recep.ref, uart.ref, settings))
+    val sp = system.actorOf(HeliosUART.props(recep.ref, uart.ref, settings))
 
     uart.expectMsg(Serial.Open(settings))
     uart.send(sp, Serial.Opened(settings, operator.ref))
@@ -55,7 +55,7 @@ with ImplicitSender {
     val probe = TestProbe()
     val recep = TestProbe()
 
-    val sp = system.actorOf(HeliosUART(recep.ref, uart.ref, settings))
+    val sp = system.actorOf(HeliosUART.props(recep.ref, uart.ref, settings))
 
     probe.watch(sp)
 
@@ -76,7 +76,7 @@ with ImplicitSender {
     val uart = TestProbe()
     val recep = TestProbe()
 
-    val sp = system.actorOf(HeliosUART(recep.ref, uart.ref, settings))
+    val sp = system.actorOf(HeliosUART.props(recep.ref, uart.ref, settings))
 
     uart.expectMsg(Serial.Open(settings))
     uart.send(sp, Serial.Opened(settings, operator.ref))
@@ -94,7 +94,7 @@ with ImplicitSender {
     val recep = TestProbe()
     val probe = TestProbe()
 
-    val sp = system.actorOf(HeliosUART(recep.ref, uart.ref, settings))
+    val sp = system.actorOf(HeliosUART.props(recep.ref, uart.ref, settings))
 
     probe.watch(sp)
 

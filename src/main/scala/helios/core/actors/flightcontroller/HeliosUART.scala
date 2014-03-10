@@ -3,26 +3,18 @@ package helios.core.actors.flightcontroller
 import akka.actor._
 import akka.util.ByteString
 
-import com.github.jodersky.flow.Serial._
-import com.github.jodersky.flow.Serial
-
-
 import org.slf4j.LoggerFactory
 import helios.core.actors.flightcontroller.FlightControllerMessages._
+import helios.mavlink.MAVLink.convertToMAVLink
 
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
-import com.github.jodersky.flow.Serial.Write
-import com.github.jodersky.flow.Serial.Received
-import akka.actor.Terminated
-import com.github.jodersky.flow.Serial.Register
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
+import com.github.jodersky.flow.Serial._
+import com.github.jodersky.flow.Serial
 import com.github.jodersky.flow.SerialSettings
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
-import com.github.jodersky.flow.Serial.CommandFailed
-import com.github.jodersky.flow.Serial.Opened
+import scala.util.{Failure, Success}
+import helios.core.actors.ClientReceptionist.PublishMAVLink
 
 object HeliosUART {
-  def apply(subscriptionHandler: ActorRef, serialManager: ActorRef, settings: SerialSettings): Props =
+  def props(subscriptionHandler: ActorRef, serialManager: ActorRef, settings: SerialSettings): Props =
     Props(new HeliosUART(subscriptionHandler, serialManager, settings))
 }
 
@@ -52,10 +44,12 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
 
   def opened(operator: ActorRef): Receive = {
     case Received(data) =>
-      //TODO
       logger.debug(s"Received data: ${formatData(data)}")
-      //val ml = data.toMAVLink
-      //subscriptionHandler ! RawMAVLink(ml)
+
+      convertToMAVLink(data) match {
+        case Success(m) => subscriptionHandler ! PublishMAVLink(m)
+        case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
+      }
 
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)
