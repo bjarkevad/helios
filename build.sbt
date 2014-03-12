@@ -1,17 +1,24 @@
-name := "core-runtime" 
+
+name := "core-runtime"
 
 version := "0.0.0"
 
 scalaVersion := "2.10.3"
 
-ideaExcludeFolders += ".idea"
+//ideaExcludeFolders += ".idea"
 
-ideaExcludeFolders += ".idea_modules"
+//ideaExcludeFolders += ".idea_modules"
 
-lazy val api = project
+lazy val api = (project in file("api")).
+  settings(_root_.sbtassembly.Plugin.buildSettings: _*).
+  settings(assemblySettings: _*)
 
-lazy val coreruntime = project.in(file("."))
-  .dependsOn(api)
+lazy val coreruntime = (project in file(".")).
+  settings(_root_.sbtassembly.Plugin.buildSettings: _*).
+  settings(assemblySettings: _*).
+  dependsOn(api)
+
+test in assembly := {}
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
