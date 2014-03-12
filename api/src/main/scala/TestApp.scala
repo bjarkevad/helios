@@ -1,10 +1,8 @@
-import helios.api._
-import helios.api.HeliosAPI.CommandSuccess
-import scala.concurrent.duration._
+package helios.api
+
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import java.lang.System.currentTimeMillis
 
 class TestApp extends HeliosApplication  {
 
