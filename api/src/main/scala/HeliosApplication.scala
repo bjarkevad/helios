@@ -20,7 +20,7 @@ class HeliosApplication extends Actor {
     import scala.language.postfixOps
 
     val clientRecep = //TODO: Figure out a way to configure where the remote receptionist is
-      context.actorSelection("akka.tcp://Main@localhost:2552/user/app")
+      context.actorSelection("akka.tcp://Main@localhost:2553/user/app")
 
     //RegisterAPIClient returns a typed actor
     val f = ask(clientRecep, RegisterAPIClient(self))(3 seconds).mapTo[HeliosAPI]
