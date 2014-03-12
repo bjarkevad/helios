@@ -1,10 +1,9 @@
 package helios.core.actors
 
 import akka.actor.{Props, ActorRef, Actor}
-import helios.apimessages.CoreMessages.{NotAllowed, UnregisterClient, Registered}
+import helios.apimessages.CoreMessages.NotAllowed
 import helios.core.actors.ClientHandler.{BecomePrimary, BecomeSecondary}
 import helios.apimessages.MAVLinkMessages.RawMAVLink
-import scala.concurrent.ExecutionContext.Implicits.global
 import org.slf4j.LoggerFactory
 import org.mavlink.messages.MAVLinkMessage
 
@@ -42,7 +41,7 @@ class ClientHandler(val client: ActorRef, mlHandler: MAVLinkHandler) extends Act
   lazy val logger = LoggerFactory.getLogger(classOf[ClientHandler])
 
   override def preStart() = {
-    client ! Registered(client)
+    //client ! Registered(client)
     logger.debug("Started")
   }
 

@@ -26,7 +26,8 @@ libraryDependencies ++= Seq (
 //Misc
 libraryDependencies ++= Seq (
   "net.java.dev.jna" % "jna" % "4.0.0",
-  "com.github.jodersky" %% "flow" % "1.1.0"
+  "com.github.jodersky" %% "flow" % "1.1.0",
+  "com.netflix.rxjava" % "rxjava-scala" % "0.16.1"
 )
 
 //Logging

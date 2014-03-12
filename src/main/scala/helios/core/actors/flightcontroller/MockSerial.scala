@@ -28,7 +28,7 @@ class MockSerial extends Actor {
     s += 1
     hb.`type` = MAV_TYPE.MAV_TYPE_QUADROTOR
     hb.autopilot = MAV_AUTOPILOT.MAV_AUTOPILOT_GENERIC
-    hb.base_mode = MAV_MODE_FLAG.MAV_MODE_FLAG_AUTO_ENABLED //MAV_MODE.MAV_MODE_PREFLIGHT
+    hb.base_mode = MAV_MODE.MAV_MODE_PREFLIGHT
     hb.custom_mode = 0
     hb.system_status = MAV_STATE.MAV_STATE_STANDBY
     hb.mavlink_version = 3
