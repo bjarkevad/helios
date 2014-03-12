@@ -66,7 +66,7 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
   def _unbound: Receive = {
     case UdpConnected.Connected =>
       context become unregistered(sender)
-      context.system.scheduler.schedule(50 millis, heartbeatFreq, sender, UdpConnected.Send(heartbeat))
+      context.system.scheduler.schedule(0 millis, heartbeatFreq, sender, UdpConnected.Send(heartbeat))
       logger.debug("UdpConnected.Connected")
   }
 

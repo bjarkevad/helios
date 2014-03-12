@@ -4,6 +4,7 @@ import akka.actor.ActorRef
 import helios.api.HeliosAPI
 
 
+//TODO: Move everything to core-side
 trait Request
 trait Response
 
@@ -15,6 +16,7 @@ object CoreMessages  {
   case class RegisterClient(client: ActorRef) extends Request
   case class RegisterAPIClient(client: ActorRef) extends Request
 
+  case class UnregisterAPIClient(client: HeliosAPI) extends Request
   case class UnregisterClient(client: ActorRef) extends Request
 
   case class Registered(client: ActorRef) extends Response
@@ -27,4 +29,5 @@ object CoreMessages  {
   case class Unsubscribe(subType: SubscriptionType) extends Request
 
   case class NotAllowed(value: PutRequest) extends Response
+
 }
