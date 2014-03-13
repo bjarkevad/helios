@@ -202,9 +202,7 @@ with TypedActor.Receiver {
 
 object HeliosAPIDefault {
   def createBasemode(currentStatus: Option[SystemStatus], flags: Int*): Int = {
-    ((currentStatus map {
-      case SystemStatus(_, _, mode, _, _) => mode
-    }).getOrElse(0)
+    ((currentStatus map (_.mode)).getOrElse(0)
       /: flags)(_ | _)
   }
 }

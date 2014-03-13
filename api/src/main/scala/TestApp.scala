@@ -1,5 +1,6 @@
 package helios.api
 
+import helios.api.HeliosAPI.SystemStatus
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -24,6 +25,9 @@ class TestApp extends HeliosApplication  {
   Thread.sleep(1000)
   Helios.calibrateSensors map println
   Helios.armMotors map println
-  Helios.systemStatusStream.subscribe(v => println(s"From app: $v"))
+
+  def printer[T](v: T): Unit = println(s"test: $v")
+
+  Helios.systemStatusStream.subscribe(printer(_))
 //  Helios.terminate()
 }
