@@ -56,8 +56,8 @@ with TypedActor.Receiver {
     client ! status
   }
 
-  override def onReceive(msg: Any, sender: ActorRef) = {
-    msg match {
+  override def onReceive(message: Any, sender: ActorRef): Unit = {
+    message match {
       case m@PublishMAVLink(ml) =>
         if (ml.messageType == 0) {
           val hb = ml.asInstanceOf[msg_heartbeat]
@@ -132,7 +132,7 @@ with TypedActor.Receiver {
 
       attitude match {
         case AttitudeDeg(r, p, y) if
-          Math.abs(r) <= 45 &
+        Math.abs(r) <= 45 &
           Math.abs(p) <= 45 =>
 
           msg.roll = Math.toRadians(r).toFloat
@@ -143,19 +143,19 @@ with TypedActor.Receiver {
           CommandSuccess()
 
         case AttitudeRad(r, p, y) if
-          Math.abs(Math.toDegrees(r)) <= 45 &
+        Math.abs(Math.toDegrees(r)) <= 45 &
           Math.abs(Math.toDegrees(p)) <= 45 =>
 
           msg.roll = r
           msg.pitch = p
-          msg.yaw = y % (2*Math.PI).toFloat
+          msg.yaw = y % (2 * Math.PI).toFloat
 
           clientReceptionist ! RawMAVLink(msg)
           CommandSuccess()
 
-        case AttitudeDeg(_,_,_) =>
+        case AttitudeDeg(_, _, _) =>
           CommandFailure(new Exception("Degree values for roll and pitch should be between -45 and 45"))
-        case AttitudeRad(_,_,_) =>
+        case AttitudeRad(_, _, _) =>
           CommandFailure(new Exception(s"Radian values for roll and pitch should be between ${Math.toRadians(-45).toFloat} and ${Math.toRadians(45).toFloat}"))
         case _ =>
           CommandFailure(new Exception("Unknown attitude parameter"))
