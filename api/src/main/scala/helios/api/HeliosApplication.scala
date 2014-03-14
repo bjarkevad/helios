@@ -1,31 +1,33 @@
 package helios.api
 
-import akka.actor.Actor
+import akka.actor._
 import akka.pattern.ask
 
 import helios.api.HeliosAPI._
-import helios.apimessages.CoreMessages.RegisterAPIClient
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 
 import scala.concurrent.Await
+import helios.api.HeliosAPI.SystemStatus
+import helios.apimessages.CoreMessages.RegisterAPIClient
 
 
-class HeliosApplication extends Actor {
-  Helios.ping(0)
+class HeliosApplicationDefault(apiUri: String) extends HeliosApplication
+with TypedActor.Receiver
+with TypedActor.PreStart
+with TypedActor.PostStop {
 
-  lazy val statusStream: Subject[SystemStatus] = Subject()
-  lazy val locStream: Subject[Location] = Subject()
+  import Streams._
 
   lazy val Helios: HeliosAPI = {
     import scala.concurrent.duration._
     import scala.language.postfixOps
 
     val clientRecep = //TODO: Figure out a way to configure where the remote receptionist is
-      context.actorSelection("akka.tcp://Main@localhost:2552/user/app")
+      TypedActor.context.actorSelection("akka.tcp://Main@localhost:2552/user/app")
 
     //RegisterAPIClient returns a typed actor
-    val f = ask(clientRecep, RegisterAPIClient(self))(3 seconds).mapTo[HeliosAPI]
+    val f = ask(clientRecep, RegisterAPIClient(TypedActor.context.self))(3 seconds).mapTo[HeliosAPI]
 
     Await.result(f, 4 seconds)
   }
@@ -38,17 +40,51 @@ class HeliosApplication extends Actor {
     Helios.terminate()
   }
 
-  override def receive: Actor.Receive = {
-    case m@SystemStatus(_,_,_,_,_) =>
-      statusStream.onNext(m)
-//    case m@Location(_) =>
-//      locStream.onNext(m)
-    case _ =>
+  override def onReceive(message: Any, sender: ActorRef): Unit = {
+    message match {
+      case m@SystemStatus(_, _, _, _, _) =>
+        statusStream.onNext(m)
+      //    case m@Location(_) =>
+      //      locStream.onNext(m)
+      case _ =>
+    }
   }
 
-  implicit class HeliosAPICompanion(val helios: HeliosAPI) {
-    lazy val systemStatusStream: Observable[SystemStatus] = statusStream
-    lazy val locationStream: Observable[Location] = locStream
+  override val scheduler = TypedActor.context.system.scheduler
+}
+
+trait HeliosApplication {
+  val Helios: HeliosAPI
+
+  val scheduler: Scheduler
+}
+
+object HeliosApplication {
+  def apply(apiHost: String, apiPort: String): HeliosApplication = {
+    val uri = s"akka.tcp://Main@$apiHost:$apiPort/user/app"
+    val as = ActorSystem("HeliosAPI")
+    TypedActor(as).typedActorOf(
+      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(uri)))
+  }
+
+  def apply(): HeliosApplication = {
+    val defaultUri = "akka.tcp://Main@localhost:2552/user/app"
+    val as = ActorSystem("HeliosAPI")
+    TypedActor(as).typedActorOf(
+      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(defaultUri)))
+  }
+}
+
+object Streams {
+  private[api]
+  lazy val statusStream: Subject[SystemStatus] = Subject()
+
+  private[api]
+  lazy val locStream: Subject[Location] = Subject()
+
+  implicit class HeliosAPIImp(val helios: HeliosAPI) {
+    val systemStatusStream: Observable[SystemStatus] = statusStream
+    val locationStream: Observable[Location] = locStream
   }
 }
 

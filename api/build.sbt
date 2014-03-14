@@ -2,7 +2,7 @@ import AssemblyKeys._
 
 version := "0.0.0"
 
-mainClass in assembly  := Some("akka.Main helios.api.TestApp")
+mainClass in assembly := Some("helios.TestApp")
 
 libraryDependencies ++= Seq (
   "com.typesafe.akka" %% "akka-actor" % "2.3.0",
