@@ -6,10 +6,6 @@ version := "0.0.0"
 
 scalaVersion := "2.10.3"
 
-//ideaExcludeFolders += ".idea"
-
-//ideaExcludeFolders += ".idea_modules"
-
 lazy val api = (project in file("api")).
   settings(_root_.sbtassembly.Plugin.buildSettings: _*).
   settings(assemblySettings: _*)
@@ -19,7 +15,16 @@ lazy val coreruntime = (project in file(".")).
   settings(assemblySettings: _*).
   dependsOn(api)
 
-test in assembly := {}
+//test in assembly := {}
+
+mainClass in assembly := Some("helios.Main")
+
+mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => 
+  {
+    case "application.conf" => MergeStrategy.first
+    case x => old(x)
+  }
+}
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 

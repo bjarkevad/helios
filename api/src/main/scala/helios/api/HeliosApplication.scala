@@ -1,4 +1,5 @@
 package helios.api
+
 import akka.actor.Actor
 import akka.pattern.ask
 
@@ -14,6 +15,7 @@ class HeliosApplication extends Actor {
   Helios.ping(0)
 
   lazy val statusStream: Subject[SystemStatus] = Subject()
+  lazy val locStream: Subject[Location] = Subject()
 
   lazy val Helios: HeliosAPI = {
     import scala.concurrent.duration._
@@ -39,12 +41,14 @@ class HeliosApplication extends Actor {
   override def receive: Actor.Receive = {
     case m@SystemStatus(_,_,_,_,_) =>
       statusStream.onNext(m)
+//    case m@Location(_) =>
+//      locStream.onNext(m)
     case _ =>
   }
 
   implicit class HeliosCompanion(val helios: HeliosAPI) {
     lazy val systemStatusStream: Observable[SystemStatus] = statusStream
-    lazy val locationStream: Observable[Location] = ???
+    lazy val locationStream: Observable[Location] = locStream
   }
 }
 

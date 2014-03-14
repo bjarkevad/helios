@@ -53,7 +53,7 @@ with ImplicitSender {
     udpCon.expectMsgClass(classOf[UdpConnected.Send])
   }
 
-  it should "stash and send MAVLink messages to its handler" in {
+  it should "stash and send MAVLink helios.api.messages to its handler" in {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
@@ -73,7 +73,7 @@ with ImplicitSender {
     udpMan.expectMsgClass(classOf[RawMAVLink]) //normal should be sent to handler
   }
 
-  it should "not send unknown messages to its handler" in {
+  it should "not send unknown helios.api.messages to its handler" in {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
