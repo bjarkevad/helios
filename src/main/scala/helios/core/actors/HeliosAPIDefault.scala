@@ -195,7 +195,9 @@ with TypedActor.Receiver {
 
   override def getFlightMode: Future[FlightMode] = ???
 
-  override def systemStatus: Option[SystemStatus] = sysStatus
+  override def systemStatus: Option[SystemStatus] = {
+    sysStatus
+  }
 
   //override def systemStatusStream: Observable[SystemStatus] = sysSubject
 }
@@ -205,5 +207,7 @@ object HeliosAPIDefault {
     ((currentStatus map (_.mode)).getOrElse(0)
       /: flags)(_ | _)
   }
+  createBasemode(None)
+  createBasemode(None, 2, 4, 8)
 }
 

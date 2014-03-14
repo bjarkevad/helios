@@ -1,6 +1,5 @@
 package helios.api
 
-import helios.api.HeliosAPI.SystemStatus
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 

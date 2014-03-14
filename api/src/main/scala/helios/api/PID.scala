@@ -1,3 +1,6 @@
+package helios.api
+
+/* Copyright 2014 Bjarke Vad Andersen, <bjarke.vad90@gmail.com> */
 
 object PID extends App {
 
