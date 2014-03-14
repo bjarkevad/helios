@@ -51,7 +51,7 @@ with TypedActor.Receiver {
   }
 
   override def updateSystemStatus(status: SystemStatus): Unit = {
-    logger.debug("updateSystemStatus")
+    //logger.debug("updateSystemStatus")
     sysStatus = Some(status)
     client ! status
   }
@@ -93,9 +93,9 @@ with TypedActor.Receiver {
 
   override def land: Future[CommandResult] = ???
 
-  override def rotateRight(degrees: Degree): Future[CommandResult] = ???
+  override def rotateRight(degrees: Degrees): Future[CommandResult] = ???
 
-  override def rotateLeft(degrees: Degree): Future[CommandResult] = ???
+  override def rotateLeft(degrees: Degrees): Future[CommandResult] = ???
 
   override def location: Future[Location] = ???
 
@@ -126,9 +126,46 @@ with TypedActor.Receiver {
   //TODO: Rename? //*
   override def setAttitude(attitude: Attitude, altitude: Altitude): Future[CommandResult] = ???
 
-  override def setAttitude(attitude: Attitude, thrust: Thrust): Future[CommandResult] = ???
+  override def setAttitude(attitude: Attitude, thrust: Thrust): Future[CommandResult] = {
+    Future {
+      val msg = new msg_set_roll_pitch_yaw_thrust(20, 1)
 
-  override def attitude: Future[Attitude] = ???
+      attitude match {
+        case AttitudeDeg(r, p, y) if
+          Math.abs(r) <= 45 &
+          Math.abs(p) <= 45 =>
+
+          msg.roll = Math.toRadians(r).toFloat
+          msg.pitch = Math.toRadians(p).toFloat
+          msg.yaw = Math.toRadians(y % 360).toFloat
+
+          clientReceptionist ! RawMAVLink(msg)
+          CommandSuccess()
+
+        case AttitudeRad(r, p, y) if
+          Math.abs(Math.toDegrees(r)) <= 45 &
+          Math.abs(Math.toDegrees(p)) <= 45 =>
+
+          msg.roll = r
+          msg.pitch = p
+          msg.yaw = y % (2*Math.PI).toFloat
+
+          clientReceptionist ! RawMAVLink(msg)
+          CommandSuccess()
+
+        case AttitudeDeg(_,_,_) =>
+          CommandFailure(new Exception("Degree values for roll and pitch should be between -45 and 45"))
+        case AttitudeRad(_,_,_) =>
+          CommandFailure(new Exception(s"Radian values for roll and pitch should be between ${Math.toRadians(-45).toFloat} and ${Math.toRadians(45).toFloat}"))
+        case _ =>
+          CommandFailure(new Exception("Unknown attitude parameter"))
+      }
+    }
+  }
+
+  override def attitude: Future[Attitude] = {
+    ???
+  }
 
   override def altitude: Future[Altitude] = ???
 
@@ -207,6 +244,7 @@ object HeliosAPIDefault {
     ((currentStatus map (_.mode)).getOrElse(0)
       /: flags)(_ | _)
   }
+
   createBasemode(None)
   createBasemode(None, 2, 4, 8)
 }

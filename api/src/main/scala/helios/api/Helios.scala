@@ -11,7 +11,10 @@ object HeliosAPI {
   case class SystemStatus(mavtype: Int, autopilot: Int, mode: Int, status: Int, seq: Int = -1)
   trait Altitude
   trait Attitude
-  trait Degree
+  case class AttitudeDeg(roll: Degrees, pitch: Degrees, yaw: Degrees) extends Attitude
+  case class AttitudeRad(roll: Radians, pitch: Radians, yaw: Radians) extends Attitude
+  type Degrees = Float
+  type Radians = Float
   trait CommandResult
 
   case class CommandSuccess() extends CommandResult
@@ -24,7 +27,7 @@ object HeliosAPI {
   trait ParameterValue
   trait SystemInformation
   trait FlightMode
-  trait Thrust
+  type Thrust = Float
   trait ControlMode
 
   case class ByThrust() extends ControlMode
@@ -103,9 +106,9 @@ trait HeliosAPI {
 
   def location: Future[Location]
 
-  def rotateLeft(degrees: Degree): Future[CommandResult]
+  def rotateLeft(degrees: Degrees): Future[CommandResult]
 
-  def rotateRight(degrees: Degree): Future[CommandResult]
+  def rotateRight(degrees: Degrees): Future[CommandResult]
 
   def land: Future[CommandResult]
 

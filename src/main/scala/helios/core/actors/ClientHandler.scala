@@ -6,6 +6,7 @@ import helios.core.actors.ClientHandler.{BecomePrimary, BecomeSecondary}
 import helios.apimessages.MAVLinkMessages.RawMAVLink
 import org.slf4j.LoggerFactory
 import org.mavlink.messages.MAVLinkMessage
+import helios.core.actors.ClientReceptionist.PublishMAVLink
 
 trait MAVLinkHandler {
   def handle(msg: MAVLinkMessage): Option[List[MAVLinkMessage]]
@@ -51,15 +52,19 @@ class ClientHandler(val client: ActorRef, mlHandler: MAVLinkHandler) extends Act
   def receive: Actor.Receive = secondary
 
   def primary: Actor.Receive = pri orElse shared
-  def secondary: Actor.Receive = sec orElse shared
+  def secondary: Actor.Receive = primary //TODO: Everyone is primary for debugging purposes
+  //def secondary: Actor.Receive = sec orElse shared
 
   def pri: Actor.Receive = {
     case BecomeSecondary() => context.become(secondary)
 
     case m@RawMAVLink(msg) =>
-      logger.debug(s"received MAVLink: $msg")//Write to UART
+      //logger.debug(s"received MAVLink: $msg")//Write to UART
       //mlHandler.handle(msg)
       context.parent ! m
+
+    case m@PublishMAVLink(msg) =>
+      client ! m
   }
 
   def sec: Actor.Receive = {
