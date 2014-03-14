@@ -1,7 +1,7 @@
 package helios.test.core.actors
 
 import org.scalatest._
-import akka.actor.{Props, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestProbe, TestKit}
 import helios.core.actors.GroundControl
 import scala.concurrent.duration._
@@ -11,11 +11,12 @@ import scala.concurrent
 import akka.io.UdpConnected
 import java.net.InetSocketAddress
 import akka.util.ByteString
-import helios.apimessages.CoreMessages.{Registered, RegisterClient}
+import helios.apimessages.CoreMessages.Registered
 import org.mavlink.messages.common.msg_heartbeat
 import org.mavlink.messages._
 import helios.apimessages.CoreMessages.Registered
 import helios.apimessages.MAVLinkMessages.RawMAVLink
+import helios.core.actors.ClientReceptionist.PublishMAVLink
 
 class GroundControlTest extends TestKit(ActorSystem("GroundControlTest"))
 with FlatSpecLike
@@ -40,7 +41,7 @@ with ImplicitSender {
     system.shutdown()
   }
 
-  "GroundControl" should "start sending heartbeats on connected" in {
+  "GroundControl" should "send a single heartbeat on connected" in {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
@@ -49,11 +50,9 @@ with ImplicitSender {
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)
     udpCon.expectMsgClass(classOf[UdpConnected.Send])
-    udpCon.expectMsgClass(classOf[UdpConnected.Send])
-    udpCon.expectMsgClass(classOf[UdpConnected.Send])
   }
 
-  it should "stash and send MAVLink helios.api.messages to its handler" in {
+  ignore should "stash and send MAVLink helios.api.messages to its handler" in {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
@@ -66,11 +65,11 @@ with ImplicitSender {
     udpCon.send(gc, UdpConnected.Received(ByteString(heartbeat(0).encode()))) //Stashed
 
     udpMan.send(gc, Registered(gc))
-    udpMan.expectMsgClass(classOf[RawMAVLink]) //Stashed should be replayed
+    udpMan.expectMsgClass(classOf[PublishMAVLink]) //Stashed should be replayed
 
     udpCon.send(gc, UdpConnected.Received(ByteString(heartbeat(1).encode()))) //normal
 
-    udpMan.expectMsgClass(classOf[RawMAVLink]) //normal should be sent to handler
+    udpMan.expectMsgClass(classOf[PublishMAVLink]) //normal should be sent to handler
   }
 
   it should "not send unknown helios.api.messages to its handler" in {
