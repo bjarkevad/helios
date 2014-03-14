@@ -44,11 +44,10 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
 
   def opened(operator: ActorRef): Receive = {
     case Received(data) =>
-      logger.debug(s"Received data: ${formatData(data)}")
-
       convertToMAVLink(data) match {
         case Success(m) => subscriptionHandler ! PublishMAVLink(m)
         case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
+        case e@_ => logger.warn(s"What the heck? $e")
       }
 
     case WriteData(data) =>

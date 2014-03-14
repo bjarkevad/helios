@@ -5,7 +5,6 @@ import akka.actor._
 import scala.collection.mutable
 
 import helios.apimessages.CoreMessages._
-import helios.core.actors.ClientHandler.BecomePrimary
 
 import org.slf4j.LoggerFactory
 import akka.io.{IO, UdpConnected}
@@ -77,7 +76,7 @@ class ClientReceptionist extends Actor {
 
     case m@PublishMAVLink(ml) =>
     //Everyone gets everything..
-    clients.keys foreach (_ ! m)
+      clients.keys foreach (_ ! m)
 
     case RawMAVLink(m) =>
       //Send to UART

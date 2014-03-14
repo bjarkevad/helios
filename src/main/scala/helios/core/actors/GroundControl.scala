@@ -5,7 +5,7 @@ import akka.io.UdpConnected
 import akka.util.ByteString
 
 import org.mavlink.messages._
-import org.mavlink.messages.common.msg_heartbeat
+import org.mavlink.messages.common._
 
 import helios.mavlink.MAVLink
 import helios.apimessages.MAVLinkMessages._
@@ -13,6 +13,7 @@ import MAVLink._
 import java.net.InetSocketAddress
 import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
+import helios.core.actors.ClientReceptionist.PublishMAVLink
 
 object GroundControl {
   def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager))
@@ -38,6 +39,9 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
     ByteString(hb.encode())
   }
+
+
+
   val heartbeatFreq: FiniteDuration = 1.second
   //
 
@@ -65,8 +69,10 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
   def _unbound: Receive = {
     case UdpConnected.Connected =>
-      context become unregistered(sender)
-      context.system.scheduler.schedule(0 millis, heartbeatFreq, sender, UdpConnected.Send(heartbeat))
+      val con = sender()
+      context become unregistered(con)
+      //context.system.scheduler.schedule(0 millis, heartbeatFreq, con, UdpConnected.Send(heartbeat)) //NOTE: heartbeat comes from flightcontroller
+      con ! UdpConnected.Send(heartbeat) //TODO: Move this somewhere else, only for QGC to register client
       logger.debug("UdpConnected.Connected")
   }
 
@@ -84,21 +90,21 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
       stash()
       logger.debug("added message to stash")
 
-    case Registered(c) if c == self =>
+    case Registered(handler) =>
       unstashAll()
       registerTask.cancel()
-      context become registered(connection, sender)
+      context become registered(connection, handler)
       logger.debug("became 'registered'")
 
-    case Registered(c) =>
-      logger.debug("received Registered() with wrong parameter")
+    //    case Registered(c) =>
+    //      logger.debug("received Registered() with wrong parameter")
   }
 
   def _registered(connection: ActorRef, handler: ActorRef): Receive = {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
         case Success(m: MAVLinkMessage) =>
-          logger.debug(s"received MAVLink: $m")
+          //logger.debug(s"received MAVLink: $m")
           handler ! RawMAVLink(m)
 
         case Failure(e: Throwable) =>
@@ -107,6 +113,14 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
         case _ =>
           logger.warn("huh")
       }
+
+    case msg@UdpConnected.CommandFailed(cmd) =>
+      connection ! cmd //RESEND MOFO
+
+    case msg@PublishMAVLink(ml) =>
+      //logger.debug("GroundControl received MAVLink")
+      logger.debug(s"Sending MAVLink to GC: $ml")
+      connection ! UdpConnected.Send(ByteString(ml.encode()))
   }
 
   def sharedUdp(connection: ActorRef): Receive = {
