@@ -22,14 +22,18 @@ import scala.Some
 import helios.apimessages.CoreMessages.TestMsg
 import helios.api.HeliosAPI
 import helios.core.actors.ClientReceptionist.PublishMAVLink
+import org.mavlink.messages.common.msg_heartbeat
 
 object ClientReceptionist {
+
   case class PublishMAVLink(message: MAVLinkMessage)
 
   def props: Props = Props(new ClientReceptionist)
 }
 
 class ClientReceptionist extends Actor {
+
+  import context.system
 
   /** Contains a map from Handler to Client */
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
@@ -38,14 +42,17 @@ class ClientReceptionist extends Actor {
 
   val mockSerial = context.actorOf(MockSerial.props)
   val uart = context.actorOf(HeliosUART.props(self, mockSerial, null))
+  //val groundControl = context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
+  val groundControl = context.actorOf(GroundControl.props(IO(UdpConnected), "localhost", 14550), "GroundControl")
+  context watch groundControl
 
   override def preStart() = {
-    import context.system
-    context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
     logger.debug(context.self.path.toString)
   }
 
-  def receive: Receive = {
+  def receive: Receive = defaultReceive(groundControlAlive = true)
+
+  def defaultReceive(groundControlAlive: Boolean): Receive = {
     case RegisterClient(c) =>
       val ch = context.actorOf(ClientHandler(c, self))
 
@@ -75,7 +82,10 @@ class ClientReceptionist extends Actor {
       sender ! hd
 
     case m@PublishMAVLink(ml) =>
-    //Everyone gets everything..
+      //Always send heartbeats to groundcontrol
+      if (groundControlAlive && !clients.contains(groundControl) && ml.isInstanceOf[msg_heartbeat])
+        groundControl ! m
+
       clients.keys foreach (_ ! m)
 
     case RawMAVLink(m) =>
@@ -85,6 +95,10 @@ class ClientReceptionist extends Actor {
     case Terminated(a) if clients contains a =>
       val client = clients(a)
       client ! Unregistered(client)
+
+    case Terminated(`groundControl`) =>
+      context.become(defaultReceive(groundControlAlive = false))
+
 
     case Terminated(a) =>
       logger.debug("Unhandled terminated message")

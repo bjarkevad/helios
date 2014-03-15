@@ -2,6 +2,7 @@ package helios
 
 import helios.api.HeliosApplication
 import helios.api.HeliosAPI.AttitudeDeg
+import helios.api.Streams._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -31,8 +32,8 @@ object TestApp extends App {
 //  Helios.calibrateSensors map println
 //  Helios.armMotors map println
 
-  //def printer[T](v: T): Unit = println(s"test: $v")
-  //Helios.systemStatusStream.subscribe(printer(_))
+  def printer[T](v: T): Unit = println(s"test: $v")
+  Helios.systemStatusStream.subscribe(printer(_))
 
   class attRun extends Runnable {
     var p = 0
