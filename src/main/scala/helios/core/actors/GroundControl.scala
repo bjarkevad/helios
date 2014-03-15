@@ -97,10 +97,9 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
     //      logger.debug("received Registered() with wrong parameter")
 
     case msg@PublishMAVLink(ml) =>
-      //logger.debug("GroundControl received MAVLink")
-      logger.debug(s"Sending MAVLink to GC: $ml")
-
       connection ! UdpConnected.Send(ByteString(ml.encode()))
+      //logger.debug(s"Sending MAVLink to GC: $ml")
+
   }
 
   def _registered(connection: ActorRef, handler: ActorRef): Receive = {
@@ -121,10 +120,10 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
       connection ! cmd //RESEND MOFO
 
     case msg@PublishMAVLink(ml) =>
-      //logger.debug("GroundControl received MAVLink")
-      logger.debug(s"Sending MAVLink to GC: $ml")
-
       connection ! UdpConnected.Send(ByteString(ml.encode()))
+      //logger.debug("GroundControl received MAVLink")
+      //logger.debug(s"Sending MAVLink to GC: $ml")
+
   }
 
   def sharedUdp(connection: ActorRef): Receive = {
