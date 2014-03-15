@@ -16,10 +16,11 @@ import org.slf4j.LoggerFactory
 import helios.core.actors.ClientReceptionist.PublishMAVLink
 
 object GroundControl {
-  def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager))
+  def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager, "localhost", 14550))
+  def props(udpManager: ActorRef, hostName: String, port: Int): Props = Props(new GroundControl(udpManager, hostName, port))
 }
 
-class GroundControl(udpManager: ActorRef) extends Actor with Stash {
+class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends Actor with Stash {
 
   import helios.apimessages.CoreMessages._
   import concurrent.duration._
@@ -41,7 +42,6 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
   }
 
 
-
   val heartbeatFreq: FiniteDuration = 1.second
   //
 
@@ -49,7 +49,7 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
   override def preStart() = {
     logger.debug("Started")
-    udpManager ! UdpConnected.Connect(self, new InetSocketAddress("localhost", 14550))
+    udpManager ! UdpConnected.Connect(self, new InetSocketAddress(hostName, port))
   }
 
   override def postStop() = {}
@@ -58,8 +58,6 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
   def unbound: Receive = _unbound orElse unknown
 
-  def unregistered(connection: ActorRef): Receive =
-    _unregistered(connection) orElse sharedUdp(connection) orElse unknown
 
   def awaitingRegistration(connection: ActorRef, registerTask: Cancellable): Receive =
     _awaitingRegistration(connection, registerTask) orElse sharedUdp(connection) orElse unknown
@@ -70,19 +68,18 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
   def _unbound: Receive = {
     case UdpConnected.Connected =>
       val con = sender()
-      context become unregistered(con)
-      //context.system.scheduler.schedule(0 millis, heartbeatFreq, con, UdpConnected.Send(heartbeat)) //NOTE: heartbeat comes from flightcontroller
-      con ! UdpConnected.Send(heartbeat) //TODO: Move this somewhere else, only for QGC to register client
-      logger.debug("UdpConnected.Connected")
-  }
-
-  def _unregistered(connection: ActorRef): Receive = {
-    //Only register with Receptionist when a message is received from the GC
-    case msg@UdpConnected.Received(v) =>
-      stash()
       val reg = context.system.scheduler.schedule(0 millis, 100 millis, context.parent, RegisterClient(self))
-      context become awaitingRegistration(connection, reg)
+      context become awaitingRegistration(con, reg)
+
+      //context.system.scheduler.schedule(0 millis, heartbeatFreq, con, UdpConnected.Send(heartbeat)) //NOTE: heartbeat comes from flightcontroller
+      //con ! UdpConnected.Send(heartbeat) //TODO: Move this somewhere else, only for QGC to register client
+
+      logger.debug("UdpConnected.Connected")
       logger.debug("became 'awaitingRegistration'")
+
+    case UdpConnected.CommandFailed(cmd: UdpConnected.Connect) =>
+      logger.warn(s"Groundcontrol could not connect to $hostName:$port")
+      self ! PoisonPill
   }
 
   def _awaitingRegistration(connection: ActorRef, registerTask: Cancellable): Receive = {
@@ -98,6 +95,12 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
     //    case Registered(c) =>
     //      logger.debug("received Registered() with wrong parameter")
+
+    case msg@PublishMAVLink(ml) =>
+      //logger.debug("GroundControl received MAVLink")
+      logger.debug(s"Sending MAVLink to GC: $ml")
+
+      connection ! UdpConnected.Send(ByteString(ml.encode()))
   }
 
   def _registered(connection: ActorRef, handler: ActorRef): Receive = {
@@ -120,6 +123,7 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
     case msg@PublishMAVLink(ml) =>
       //logger.debug("GroundControl received MAVLink")
       logger.debug(s"Sending MAVLink to GC: $ml")
+
       connection ! UdpConnected.Send(ByteString(ml.encode()))
   }
 

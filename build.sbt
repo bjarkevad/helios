@@ -1,3 +1,4 @@
+import sbtassembly.Plugin._
 import AssemblyKeys._
 
 name := "core-runtime"
