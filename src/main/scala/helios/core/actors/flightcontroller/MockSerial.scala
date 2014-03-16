@@ -5,10 +5,10 @@ import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.Serial
 import org.mavlink.messages.common._
 import org.mavlink.messages._
-import helios.core.actors.ClientReceptionist.PublishMAVLink
 import helios.mavlink.MAVLink.convertToMAVLink
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import akka.util.ByteString
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
 object MockSerial {
   def props = Props(new MockSerial)

@@ -1,8 +1,9 @@
-package helios.apimessages
+package helios.api.messages
 
 import org.mavlink.messages.MAVLinkMessage
 
 
 object MAVLinkMessages {
-  case class RawMAVLink(message: MAVLinkMessage) extends PutRequest
+  //MAVLink message that should be published to clients of the system (API, Groundcontrol)
+  case class PublishMAVLink(message: MAVLinkMessage)
 }

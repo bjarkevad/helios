@@ -12,8 +12,8 @@ import java.net.InetSocketAddress
 import akka.util.ByteString
 import org.mavlink.messages.common.msg_heartbeat
 import org.mavlink.messages._
-import helios.apimessages.CoreMessages.Registered
-import helios.core.actors.ClientReceptionist.PublishMAVLink
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.core.actors.CoreMessages.Registered
 
 class GroundControlTest extends TestKit(ActorSystem("GroundControlTest"))
 with FlatSpecLike

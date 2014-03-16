@@ -7,30 +7,50 @@ object HeliosAPI {
 
 
   trait Location
+
+  case class SystemLocation(location: Location)
+
   trait Distance
+
   case class SystemStatus(mavtype: Int, autopilot: Int, mode: Int, status: Int, seq: Int = -1)
+
   trait Altitude
+
   trait Attitude
+
   case class AttitudeDeg(roll: Degrees, pitch: Degrees, yaw: Degrees) extends Attitude
+
   case class AttitudeRad(roll: Radians, pitch: Radians, yaw: Radians) extends Attitude
+
   type Degrees = Float
   type Radians = Float
+
   trait CommandResult
 
   case class CommandSuccess() extends CommandResult
+
   case class CommandFailure(reason: Throwable) extends CommandResult
 
   trait MissionResult
+
   trait Mission
+
   trait MissionItem
+
   trait ParameterId
+
   trait ParameterValue
+
   trait SystemInformation
+
   trait FlightMode
+
   type Thrust = Float
+
   trait ControlMode
 
   case class ByThrust() extends ControlMode
+
   case class ByAltitude() extends ControlMode
 
 }
@@ -41,6 +61,7 @@ trait HeliosAPI {
 
   //INTERNAL USE
   def updateSystemStatus(status: SystemStatus): Unit
+
   def ping(ms: Long): Unit
 
   //PUBLIC
@@ -72,6 +93,7 @@ trait HeliosAPI {
   def leaveControl(): Unit
 
   def altitude: Future[Altitude]
+
   //  def setAltitude(altitude: Altitude): Future[CommandResult] //setAltitude(1 meter) //* //Fixed heigth
 
   def attitude: Future[Attitude]
@@ -119,7 +141,7 @@ trait HeliosAPI {
   def newMission(mission: Mission): Unit
 }
 
-trait HeliosPrivate {
-  }
+//trait HeliosPrivate {
+//}
 
 

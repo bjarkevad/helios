@@ -8,12 +8,13 @@ import org.mavlink.messages._
 import org.mavlink.messages.common._
 
 import helios.mavlink.MAVLink
-import helios.apimessages.MAVLinkMessages._
 import MAVLink._
 import java.net.InetSocketAddress
 import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
-import helios.core.actors.ClientReceptionist.PublishMAVLink
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import helios.core.actors.CoreMessages._
 
 object GroundControl {
   def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager, "localhost", 14550))
@@ -22,7 +23,6 @@ object GroundControl {
 
 class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends Actor with Stash {
 
-  import helios.apimessages.CoreMessages._
   import concurrent.duration._
   import language.postfixOps
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -106,8 +106,8 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
         case Success(m: MAVLinkMessage) =>
-          //logger.debug(s"received MAVLink: $m")
-          handler ! RawMAVLink(m)
+          logger.debug(s"received MAVLink: $m")
+          handler ! WriteMAVLink(m)
 
         case Failure(e: Throwable) =>
           logger.warn(s"received an unknown message over UDP")

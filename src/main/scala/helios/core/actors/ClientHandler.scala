@@ -1,12 +1,12 @@
 package helios.core.actors
 
 import akka.actor.{Props, ActorRef, Actor}
-import helios.apimessages.CoreMessages.NotAllowed
 import helios.core.actors.ClientHandler.{BecomePrimary, BecomeSecondary}
-import helios.apimessages.MAVLinkMessages.RawMAVLink
 import org.slf4j.LoggerFactory
 import org.mavlink.messages.MAVLinkMessage
-import helios.core.actors.ClientReceptionist.PublishMAVLink
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.core.actors.CoreMessages.NotAllowed
 
 trait MAVLinkHandler {
   def handle(msg: MAVLinkMessage): Option[List[MAVLinkMessage]]
@@ -58,7 +58,7 @@ class ClientHandler(val client: ActorRef, mlHandler: MAVLinkHandler) extends Act
   def pri: Actor.Receive = {
     case BecomeSecondary() => context.become(secondary)
 
-    case m@RawMAVLink(msg) =>
+    case m@WriteMAVLink(msg) =>
       //logger.debug(s"received MAVLink: $msg")//Write to UART
       //mlHandler.handle(msg)
       context.parent ! m
@@ -70,10 +70,11 @@ class ClientHandler(val client: ActorRef, mlHandler: MAVLinkHandler) extends Act
   def sec: Actor.Receive = {
     case BecomePrimary() => context.become(primary)
 
-    case m@RawMAVLink(_) => sender ! NotAllowed(m)
+    case m@WriteMAVLink(_) => sender ! NotAllowed()
   }
 
   def shared: Actor.Receive = {
     case _ =>
   }
 }
+

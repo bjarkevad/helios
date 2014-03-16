@@ -4,14 +4,15 @@ import akka.actor._
 import scala.concurrent.{Promise, Future}
 import scala.util.Try
 import org.slf4j.LoggerFactory
-import helios.apimessages.CoreMessages._
-import helios.apimessages.MAVLinkMessages.RawMAVLink
 import helios.api.HeliosAPI
 import helios.api.HeliosAPI._
-import helios.core.actors.ClientReceptionist.PublishMAVLink
 import org.mavlink.messages._
 import org.mavlink.messages.common._
 import rx.lang.scala.Observable
+import helios.api.HeliosApplicationDefault._
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.core.actors.CoreMessages.TestMsg
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef) extends HeliosAPI
 with TypedActor.PreStart
@@ -131,32 +132,22 @@ with TypedActor.Receiver {
       val msg = new msg_set_roll_pitch_yaw_thrust(20, 1)
 
       attitude match {
-        case AttitudeDeg(r, p, y) if
-        Math.abs(r) <= 45 &
-          Math.abs(p) <= 45 =>
-
+        case AttitudeDeg(r, p, y) =>
           msg.roll = Math.toRadians(r).toFloat
           msg.pitch = Math.toRadians(p).toFloat
           msg.yaw = Math.toRadians(y % 360).toFloat
 
-          clientReceptionist ! RawMAVLink(msg)
+          clientReceptionist ! WriteMAVLink(msg)
           CommandSuccess()
 
-        case AttitudeRad(r, p, y) if
-        Math.abs(Math.toDegrees(r)) <= 45 &
-          Math.abs(Math.toDegrees(p)) <= 45 =>
-
+        case AttitudeRad(r, p, y)  =>
           msg.roll = r
           msg.pitch = p
           msg.yaw = y % (2 * Math.PI).toFloat
 
-          clientReceptionist ! RawMAVLink(msg)
+          clientReceptionist ! WriteMAVLink(msg)
           CommandSuccess()
 
-        case AttitudeDeg(_, _, _) =>
-          CommandFailure(new Exception("Degree values for roll and pitch should be between -45 and 45"))
-        case AttitudeRad(_, _, _) =>
-          CommandFailure(new Exception(s"Radian values for roll and pitch should be between ${Math.toRadians(-45).toFloat} and ${Math.toRadians(45).toFloat}"))
         case _ =>
           CommandFailure(new Exception("Unknown attitude parameter"))
       }
@@ -181,7 +172,7 @@ with TypedActor.Receiver {
       msg.target_system = 20
       msg.base_mode = MAV_MODE.MAV_MODE_STABILIZE_DISARMED
 
-      clientReceptionist ! RawMAVLink(msg)
+      clientReceptionist ! WriteMAVLink(msg)
       CommandSuccess()
     }
   }
@@ -193,7 +184,7 @@ with TypedActor.Receiver {
       msg.base_mode = MAV_MODE.MAV_MODE_STABILIZE_ARMED
       //createBasemode(systemStatus, MAV_MODE_FLAG.MAV_MODE_FLAG_SAFETY_ARMED)
 
-      clientReceptionist ! RawMAVLink(msg)
+      clientReceptionist ! WriteMAVLink(msg)
       CommandSuccess()
     }
   }
@@ -214,7 +205,7 @@ with TypedActor.Receiver {
           cmd.param5 = 1
           cmd.param6 = 1
 
-          clientReceptionist ! RawMAVLink(cmd)
+          clientReceptionist ! WriteMAVLink(cmd)
           CommandSuccess()
 
         case Some(s) =>

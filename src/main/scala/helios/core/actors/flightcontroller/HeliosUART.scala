@@ -11,7 +11,7 @@ import com.github.jodersky.flow.Serial._
 import com.github.jodersky.flow.Serial
 import com.github.jodersky.flow.SerialSettings
 import scala.util.{Failure, Success}
-import helios.core.actors.ClientReceptionist.PublishMAVLink
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
 object HeliosUART {
   def props(subscriptionHandler: ActorRef, serialManager: ActorRef, settings: SerialSettings): Props =

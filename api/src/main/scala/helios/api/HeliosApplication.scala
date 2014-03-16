@@ -9,14 +9,18 @@ import rx.lang.scala.Subject
 
 import scala.concurrent.Await
 import helios.api.HeliosAPI.SystemStatus
-import helios.apimessages.CoreMessages.RegisterAPIClient
+import helios.api.HeliosApplicationDefault.RegisterAPIClient
 
+object HeliosApplicationDefault {
+  case class RegisterAPIClient(client: ActorRef)
+
+  case class UnregisterAPIClient(client: HeliosAPI)
+}
 
 class HeliosApplicationDefault(apiUri: String) extends HeliosApplication
 with TypedActor.Receiver
 with TypedActor.PreStart
 with TypedActor.PostStop {
-
   import Streams._
 
   lazy val Helios: HeliosAPI = {
@@ -44,8 +48,10 @@ with TypedActor.PostStop {
     message match {
       case m@SystemStatus(_, _, _, _, _) =>
         statusStream.onNext(m)
-      //    case m@Location(_) =>
-      //      locStream.onNext(m)
+
+      case m@SystemLocation(_) =>
+        locStream.onNext(m)
+
       case _ =>
     }
   }
@@ -55,7 +61,6 @@ with TypedActor.PostStop {
 
 trait HeliosApplication {
   val Helios: HeliosAPI
-
   val scheduler: Scheduler
 }
 
@@ -80,11 +85,11 @@ object Streams {
   lazy val statusStream: Subject[SystemStatus] = Subject()
 
   private[api]
-  lazy val locStream: Subject[Location] = Subject()
+  lazy val locStream: Subject[SystemLocation] = Subject()
 
   implicit class HeliosAPIImp(val helios: HeliosAPI) {
     val systemStatusStream: Observable[SystemStatus] = statusStream
-    val locationStream: Observable[Location] = locStream
+    val locationStream: Observable[SystemLocation] = locStream
   }
-}
 
+}
