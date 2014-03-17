@@ -13,12 +13,25 @@ import com.github.jodersky.flow.SerialSettings
 import scala.util.{Failure, Success}
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
+import org.mavlink.messages.IMAVLinkMessageID._
+import org.mavlink.messages.MAVLinkMessage
+
 object HeliosUART {
   def props(subscriptionHandler: ActorRef, serialManager: ActorRef, settings: SerialSettings): Props =
     Props(new HeliosUART(subscriptionHandler, serialManager, settings))
+
+  lazy val privilegedMessages: Set[Int] = Set(
+    MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_SPEED_THRUST,
+    MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_THRUST
+  )
+
+  case class NotAllowed(msg: MAVLinkMessage)
+
 }
 
 class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings: SerialSettings) extends Actor {
+
+  import HeliosUART._
 
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
@@ -37,12 +50,12 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
       throw reason //LET IT CRASH!
 
     case Opened(set, operator) =>
-      context become opened(operator)
+      context become opened(operator, context.parent)
       context watch operator
       operator ! Register(self)
   }
 
-  def opened(operator: ActorRef): Receive = {
+  def opened(operator: ActorRef, primary: ActorRef): Receive = {
     case Received(data) =>
       convertToMAVLink(data) match {
         case Success(m) => subscriptionHandler ! PublishMAVLink(m)
@@ -59,7 +72,10 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
       logger.debug(s"WriteAck(${formatData(data)}))")
 
     case WriteMAVLink(msg) =>
-      operator ! Write(ByteString(msg.encode()))
+      if (privilegedMessages.contains(msg.messageType) && sender != primary)
+        sender ! NotAllowed(msg)
+      else
+        operator ! Write(ByteString(msg.encode()))
 
     case Terminated(`operator`) =>
       logger.warn("Serialport operator closed unexpectedly")
