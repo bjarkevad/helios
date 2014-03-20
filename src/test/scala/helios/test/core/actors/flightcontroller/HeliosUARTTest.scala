@@ -6,22 +6,19 @@ import com.github.jodersky.flow._
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import akka.actor.{ActorRef, PoisonPill, ActorSystem}
 
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
-import com.github.jodersky.flow.SerialSettings
-import akka.io.IO
-import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.concurrent.duration._
 
 import helios.core.actors.flightcontroller.HeliosUART
 import akka.util.ByteString
-import com.github.jodersky.flow.Serial.Received
 import org.mavlink.messages._
-import org.mavlink.messages.common.msg_heartbeat
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
+import org.mavlink.messages.common._
+
+import helios.core.actors.flightcontroller.FlightControllerMessages.{WriteMAVLink, WriteData, WriteAck}
 import com.github.jodersky.flow.Serial.Received
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
 import com.github.jodersky.flow.SerialSettings
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.core.actors.flightcontroller.HeliosUART.{SetPrimary, NotAllowed}
 
 class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
@@ -56,16 +53,14 @@ with ImplicitSender {
     hb
   }
 
-
-
   lazy val operator = TestProbe()
-  lazy val uart = TestProbe()
+  lazy val uartManager = TestProbe()
   lazy val recep = TestProbe()
 
   def initUART: ActorRef = {
-    val hu = system.actorOf(HeliosUART.props(recep.ref, uart.ref, settings))
-    uart.expectMsg(Serial.Open(settings))
-    uart.send(hu, Serial.Opened(settings, operator.ref))
+    val hu = system.actorOf(HeliosUART.props(recep.ref, uartManager.ref, settings))
+    uartManager.expectMsg(Serial.Open(settings))
+    uartManager.send(hu, Serial.Opened(settings, operator.ref))
     operator.expectMsg(Serial.Register(hu))
 
     hu
@@ -89,7 +84,7 @@ with ImplicitSender {
   }
 
   it should "read data from the UART" in {
-    val sp =initUART
+    val sp = initUART
 
     val dataBs = ByteString(heartbeat.encode)
 
@@ -97,8 +92,55 @@ with ImplicitSender {
     recep.expectMsgClass(classOf[PublishMAVLink])
   }
 
-  it should "not allow any privileged messages to be sent from non-privileged senders" in {
+  it should "not allow privileged messages to be sent from non-privileged senders" in {
+    val probe = TestProbe()
     val sp = initUART
+
+    val msg = new msg_set_roll_pitch_yaw_thrust(20, 0)
+
+    probe.send(sp, WriteMAVLink(msg))
+    operator.expectNoMsg(50 millis)
+    probe.expectMsgClass(classOf[NotAllowed])
+  }
+
+  it should "not allow privileged commands to be sent from non-privileged senders" in {
+    val probe = TestProbe()
+    val sp = initUART
+
+    val msg = new msg_command_long(20,0)
+    HeliosUART.privilegedCommands.par.foreach { id =>
+      msg.command = id
+      probe.send(sp, WriteMAVLink(msg))
+      operator.expectNoMsg(50 millis)
+      probe.expectMsgClass(classOf[NotAllowed])
+    }
+  }
+
+  it should "allow privileged messages to be sent from privileged senders" in {
+    val probe = TestProbe()
+    val sp = initUART
+    probe.send(sp, SetPrimary(probe.ref))
+
+    val msg = new msg_set_roll_pitch_yaw_thrust(20, 0)
+
+    probe.send(sp, WriteMAVLink(msg))
+    probe.expectNoMsg(50 millis)
+    operator.expectMsgClass(classOf[Serial.Write])
+  }
+
+  it should "allow privileged commands to be sent from privileged senders" in {
+    val probe = TestProbe()
+    val sp = initUART
+    probe.send(sp, SetPrimary(probe.ref))
+
+    val msg = new msg_command_long(20,0)
+
+    HeliosUART.privilegedCommands.par.foreach { id =>
+      msg.command = id
+      probe.send(sp, WriteMAVLink(msg))
+      probe.expectNoMsg(50 millis)
+      operator.expectMsgClass(classOf[Serial.Write])
+    }
   }
 
   it should "terminate with Serial" in {
