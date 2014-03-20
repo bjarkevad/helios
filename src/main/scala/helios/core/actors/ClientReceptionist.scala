@@ -5,7 +5,6 @@ import akka.io.{IO, UdpConnected}
 
 import helios.core.actors.flightcontroller.{MockSerial, HeliosUART}
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
-import helios.core.actors.ClientHandler.BecomePrimary
 import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
@@ -13,6 +12,7 @@ import helios.api.HeliosApplicationDefault.RegisterAPIClient
 import org.mavlink.messages.common.msg_heartbeat
 
 import org.slf4j.LoggerFactory
+import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 
 object ClientReceptionist {
   def props: Props = Props(new ClientReceptionist)
@@ -31,6 +31,7 @@ class ClientReceptionist extends Actor {
   //TODO: Move this to config file
   val mockSerial = context.actorOf(MockSerial.props)
   val uart = context.actorOf(HeliosUART.props(self, mockSerial, null))
+
   //TODO: Move this to config file
   val groundControl =
     context.actorOf(GroundControl.props(IO(UdpConnected), "localhost", 14550), "GroundControl")
@@ -45,12 +46,10 @@ class ClientReceptionist extends Actor {
 
   def defaultReceive(groundControlAlive: Boolean): Receive = {
     case RegisterClient(c) =>
-      val ch = context.actorOf(ClientHandler(c, self))
+      val ch = context.actorOf(ClientHandler.props(c, self))
 
-      //First clienthandler is primary
-      if (clients.isEmpty) {
-        ch ! BecomePrimary()
-      }
+      if (clients.isEmpty)
+        uart ! SetPrimary(c)
 
       clients put(ch, c) match {
         case None => //Entry is new
@@ -67,9 +66,13 @@ class ClientReceptionist extends Actor {
       val hd: HeliosAPI =
         TypedActor(context.system)
           .typedActorOf(TypedProps(
-          classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c)))
+          classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c, uart, 20)))
 
       clients put(TypedActor(context.system).getActorRefFor(hd), c)
+
+      if (clients.isEmpty)
+        uart ! SetPrimary(c)
+
       sender ! hd
 
     case m@PublishMAVLink(ml) =>
@@ -80,13 +83,10 @@ class ClientReceptionist extends Actor {
       clients.keys foreach (_ ! m)
 
     case WriteMAVLink(m) =>
-      //TODO: Permissions
-      uart ! WriteMAVLink(m)
+      logger.error("ClientReceptionist should not receive WriteMAVLink messages!!")
 
-    case TestMsg =>
-      logger.debug("YAY API WORKS!")
-
-    case _ => sender ! NotRegistered(sender)
+    case _ =>
+      sender ! NotRegistered(sender)
   }
 
   def terminator: Receive = {
@@ -103,7 +103,6 @@ class ClientReceptionist extends Actor {
   }
 }
 
-
 object CoreMessages {
 
   import SubscriptionTypes._
@@ -113,8 +112,6 @@ object CoreMessages {
   trait Response
 
   trait PutRequest
-
-  case class TestMsg()
 
   case class RegisterClient(client: ActorRef) extends Request
 
@@ -136,6 +133,7 @@ object CoreMessages {
 
 }
 
+//TODO: Remove or what?
 object SubscriptionTypes {
 
   trait SubscriptionType

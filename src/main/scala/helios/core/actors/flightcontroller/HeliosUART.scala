@@ -7,14 +7,14 @@ import org.slf4j.LoggerFactory
 import helios.core.actors.flightcontroller.FlightControllerMessages._
 import helios.mavlink.MAVLink.convertToMAVLink
 
-import com.github.jodersky.flow.Serial._
 import com.github.jodersky.flow.Serial
 import com.github.jodersky.flow.SerialSettings
 import scala.util.{Failure, Success}
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
 import org.mavlink.messages.IMAVLinkMessageID._
-import org.mavlink.messages.MAVLinkMessage
+import org.mavlink.messages.{MAV_CMD, MAVLinkMessage}
+import org.mavlink.messages.common.msg_command_long
 
 object HeliosUART {
   def props(subscriptionHandler: ActorRef, serialManager: ActorRef, settings: SerialSettings): Props =
@@ -24,6 +24,25 @@ object HeliosUART {
     MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_SPEED_THRUST,
     MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_THRUST
   )
+
+  lazy val privilegedCommands: Set[Int] = Set(
+    MAV_CMD.MAV_CMD_NAV_LAND,
+    MAV_CMD.MAV_CMD_NAV_TAKEOFF
+  )
+
+  implicit class MAVLinkMessageImpl(val mlmsg: MAVLinkMessage) {
+    def isPrivileged: Boolean = {
+      privilegedMessages.contains(mlmsg.messageType) ||
+        (mlmsg match {
+          case m: msg_command_long =>
+            privilegedCommands.contains(m.command)
+          case _ =>
+            false
+        })
+    }
+  }
+
+  case class SetPrimary(newPrimary: ActorRef)
 
   case class NotAllowed(msg: MAVLinkMessage)
 
@@ -45,18 +64,18 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
   }
 
   override def receive: Receive = {
-    case CommandFailed(cmd, reason) =>
-      logger.warn(s"Failed to register: $reason")
+    case Serial.CommandFailed(cmd, reason) =>
+      logger.warn(s"Failed to open serial port: $reason")
       throw reason //LET IT CRASH!
 
-    case Opened(set, operator) =>
+    case Serial.Opened(set, operator) =>
       context become opened(operator, context.parent)
       context watch operator
-      operator ! Register(self)
+      operator ! Serial.Register(self)
   }
 
   def opened(operator: ActorRef, primary: ActorRef): Receive = {
-    case Received(data) =>
+    case Serial.Received(data) =>
       convertToMAVLink(data) match {
         case Success(m) => subscriptionHandler ! PublishMAVLink(m)
         case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
@@ -65,23 +84,26 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
 
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)
-      operator ! Write(dataBs, WriteAck(dataBs))
+      operator ! Serial.Write(dataBs, WriteAck(dataBs))
 
     case WriteAck(data) =>
       //TODO
       logger.debug(s"WriteAck(${formatData(data)}))")
 
     case WriteMAVLink(msg) =>
-      if (privilegedMessages.contains(msg.messageType) && sender != primary)
+      if (msg.isPrivileged && sender != primary)
         sender ! NotAllowed(msg)
       else
-        operator ! Write(ByteString(msg.encode()))
+        operator ! Serial.Write(ByteString(msg.encode()))
+
+    case SetPrimary(newPrimary) =>
+      context become opened(operator, newPrimary)
 
     case Terminated(`operator`) =>
       logger.warn("Serialport operator closed unexpectedly")
       context stop self
 
-    case Closed =>
+    case Serial.Closed =>
       logger.debug("Closed serialport")
       context stop self
   }

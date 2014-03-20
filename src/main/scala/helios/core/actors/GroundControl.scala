@@ -41,10 +41,6 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
     ByteString(hb.encode())
   }
 
-
-  val heartbeatFreq: FiniteDuration = 1.second
-  //
-
   lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
 
   override def preStart() = {
@@ -56,8 +52,8 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
 
   override def receive: Receive = unbound
 
-  def unbound: Receive = _unbound orElse unknown
-
+  def unbound: Receive =
+    _unbound orElse unknown
 
   def awaitingRegistration(connection: ActorRef, registerTask: Cancellable): Receive =
     _awaitingRegistration(connection, registerTask) orElse sharedUdp(connection) orElse unknown
@@ -70,12 +66,7 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
       val con = sender()
       val reg = context.system.scheduler.schedule(0 millis, 100 millis, context.parent, RegisterClient(self))
       context become awaitingRegistration(con, reg)
-
-      //context.system.scheduler.schedule(0 millis, heartbeatFreq, con, UdpConnected.Send(heartbeat)) //NOTE: heartbeat comes from flightcontroller
-      //con ! UdpConnected.Send(heartbeat) //TODO: Move this somewhere else, only for QGC to register client
-
-      logger.debug("UdpConnected.Connected")
-      logger.debug("became 'awaitingRegistration'")
+      logger.debug("Connected to udp")
 
     case UdpConnected.CommandFailed(cmd: UdpConnected.Connect) =>
       logger.warn(s"Groundcontrol could not connect to $hostName:$port")
@@ -92,44 +83,32 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
       registerTask.cancel()
       context become registered(connection, handler)
       logger.debug("became 'registered'")
-
-    //    case Registered(c) =>
-    //      logger.debug("received Registered() with wrong parameter")
-
-    case msg@PublishMAVLink(ml) =>
-      connection ! UdpConnected.Send(ByteString(ml.encode()))
-      //logger.debug(s"Sending MAVLink to GC: $ml")
-
   }
 
   def _registered(connection: ActorRef, handler: ActorRef): Receive = {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
         case Success(m: MAVLinkMessage) =>
-          logger.debug(s"received MAVLink: $m")
+          //logger.debug(s"received MAVLink: $m")
           handler ! WriteMAVLink(m)
 
         case Failure(e: Throwable) =>
           logger.warn(s"received an unknown message over UDP")
-
-        case _ =>
-          logger.warn("huh")
       }
 
     case msg@UdpConnected.CommandFailed(cmd) =>
       connection ! cmd //RESEND MOFO
-
-    case msg@PublishMAVLink(ml) =>
-      connection ! UdpConnected.Send(ByteString(ml.encode()))
-      //logger.debug("GroundControl received MAVLink")
-      //logger.debug(s"Sending MAVLink to GC: $ml")
-
   }
 
   def sharedUdp(connection: ActorRef): Receive = {
-    case d@UdpConnected.Disconnect => connection ! d
+    case msg@PublishMAVLink(ml) =>
+      connection ! UdpConnected.Send(ByteString(ml.encode()))
 
-    case UdpConnected.Disconnected => self ! PoisonPill
+    case d@UdpConnected.Disconnect =>
+      connection ! d
+
+    case UdpConnected.Disconnected =>
+      self ! PoisonPill
   }
 
   def unknown: Receive = {

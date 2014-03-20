@@ -6,7 +6,6 @@ import com.github.jodersky.flow.Serial
 import org.mavlink.messages.common._
 import org.mavlink.messages._
 import helios.mavlink.MAVLink.convertToMAVLink
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import akka.util.ByteString
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
@@ -56,32 +55,17 @@ class MockSerial extends Actor {
   }
 
   override def receive: Actor.Receive = {
-    case Serial.Open(s) => sender ! Serial.Opened(s, self)
-
-    case WriteMAVLink(ml) if ml.isInstanceOf[msg_set_roll_pitch_yaw_thrust] =>
-      logger.debug("set rpyt")
-
-    case m@WriteMAVLink(ml) =>
-      logger.debug(m.toString)
+    case Serial.Open(s) =>
+      sender ! Serial.Opened(s, self)
 
     case Serial.Write(bs, _) =>
       convertToMAVLink(bs) map {
         case mll: msg_set_roll_pitch_yaw_thrust =>
-//          val msg = new msg_attitude_quaternion(20, 1)
-//          msg.q1 = 0.5f
-//          msg.q2 = 0.5f
-//          msg.q3 = 0.5f
-//          msg.q4 = 0.5f
-//          msg.rollspeed = 1
-//          msg.pitchspeed = 1
-//          msg.yawspeed = 1
-//          msg.time_boot_ms = 1
           val msg = new msg_attitude(20, 1)
           msg.pitch = mll.pitch
           msg.roll = mll.roll
           msg.yaw = mll.yaw
           sender ! Serial.Received(ByteString(msg.encode()))
-          //context.parent ! PublishMAVLink(msg)
         case _ =>
       }
     case m@_ => logger.debug(s"Received $m")
