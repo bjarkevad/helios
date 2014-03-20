@@ -55,12 +55,10 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
   override def preStart() = {
-    logger.debug("Prestart")
     uartManager ! Serial.Open(settings)
   }
 
   override def postStop() = {
-    logger.debug("postStop")
   }
 
   override def receive: Receive = {

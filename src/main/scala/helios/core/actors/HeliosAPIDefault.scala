@@ -69,6 +69,8 @@ with TypedActor.Receiver {
             updateSystemStatus(SystemStatus(hb.`type`, hb.autopilot, hb.base_mode, hb.system_status, hb.sequence))
 
           case IMAVLinkMessageID.MAVLINK_MSG_ID_ATTITUDE =>
+
+          case _ =>
         }
 
       case Terminated(`client`) =>

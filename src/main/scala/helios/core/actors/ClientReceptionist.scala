@@ -10,7 +10,6 @@ import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
 
-import org.mavlink.messages.common.msg_heartbeat
 
 import org.slf4j.LoggerFactory
 
@@ -42,19 +41,16 @@ class ClientReceptionist extends Actor {
     logger.debug(context.self.path.toString)
   }
 
-  def receive = defaultReceive(groundControlAlive = true) orElse terminator
+  def receive = defaultReceive(groundControlUnregistered = true) orElse terminator
 
-  def defaultReceive(groundControlAlive: Boolean): Receive = {
+  def defaultReceive(groundControlUnregistered: Boolean): Receive = {
     case RegisterClient(c) =>
-      val ch = context.actorOf(ClientHandler.props(c, self))
+      val ch = context.actorOf(ClientHandler.props(c, uart))
 
       if (clients.isEmpty)
         uart ! SetPrimary(c)
 
-      clients put(ch, c) match {
-        case None => //Entry is new
-        case Some(_) => //Entry already exists
-      }
+      clients put(ch, c)
 
       c ! Registered(ch)
 
@@ -76,10 +72,6 @@ class ClientReceptionist extends Actor {
       sender ! hd
 
     case m@PublishMAVLink(ml) =>
-      //Always send heartbeats to groundcontrol
-      if (groundControlAlive && !clients.contains(groundControl) && ml.isInstanceOf[msg_heartbeat])
-        groundControl ! m
-
       clients.keys foreach (_ ! m)
 
     case WriteMAVLink(m) =>
@@ -95,7 +87,7 @@ class ClientReceptionist extends Actor {
       clients(a) ! Unregistered()
 
     case Terminated(`groundControl`) =>
-      context.become(defaultReceive(groundControlAlive = false) orElse terminator)
+      context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)
 
     case Terminated(a) =>
       logger.debug("Unhandled terminated message")
