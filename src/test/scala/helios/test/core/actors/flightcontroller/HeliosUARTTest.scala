@@ -68,7 +68,7 @@ with ImplicitSender {
 
   "HeliosUART" should "Open and register" in {
     //internal.InternalSerial.debug(true)
-    val sp = initUART
+    initUART
   }
 
   it should "write data to the UART" in {

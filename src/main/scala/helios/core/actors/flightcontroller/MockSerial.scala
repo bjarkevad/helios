@@ -49,6 +49,7 @@ class MockSerial extends Actor {
 
     st
   }
+
   override def preStart() = {
     context.system.scheduler.schedule(0 millis, 1 second, context.parent, PublishMAVLink(heartbeat))
     context.system.scheduler.schedule(250 millis, 500 millis, context.parent, PublishMAVLink(sysStatus))

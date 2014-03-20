@@ -88,13 +88,16 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings:
       //TODO
       logger.debug(s"WriteAck(${formatData(data)}))")
 
+    case WriteMAVLink(msg) if msg.isPrivileged && sender != primary =>
+      logger.debug(s"Sender: $sender, was not primary: $primary")
+      sender ! NotAllowed(msg)
+
     case WriteMAVLink(msg) =>
-      if (msg.isPrivileged && sender != primary)
-        sender ! NotAllowed(msg)
-      else
-        operator ! Serial.Write(ByteString(msg.encode()))
+      operator ! Serial.Write(ByteString(msg.encode()))
 
     case SetPrimary(newPrimary) =>
+      logger.debug(s"Set new primary: $newPrimary")
+      logger.debug(s"Sender was: $sender")
       context become opened(operator, newPrimary)
 
     case Terminated(`operator`) =>

@@ -28,12 +28,12 @@ object TestApp extends App {
   val HeliosApp = HeliosApplication()
   val Helios = HeliosApp.Helios
 
-  Thread.sleep(1000)
+  Helios.takeControl()
 //  Helios.calibrateSensors map println
 //  Helios.armMotors map println
 
-  def printer[T](v: T): Unit = println(s"test: $v")
-  Helios.systemStatusStream.subscribe(printer(_))
+  //Helios.systemStatusStream.subscribe(println(_))
+  Helios.attitudeRadStream.subscribe(println(_))
 
   class attRun extends Runnable {
     var p = 0
@@ -60,9 +60,12 @@ object TestApp extends App {
       y
     }
 
-    override def run(): Unit = Helios.setAttitude(AttitudeDeg(pitch, roll, yaw), 0.5f)
+    override def run(): Unit = {
+      Helios.setAttitude(AttitudeDeg(pitch, roll, yaw), 0.5f)
+    }
   }
 
   val r = new attRun
-  HeliosApp.scheduler.schedule(0 millis, 1 nanos, r)
+  HeliosApp.scheduler.schedule(0 millis, 1 seconds, r)
+  //HeliosApp.scheduler.schedule(0 millis, 1 nanos, r)
 }

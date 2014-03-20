@@ -28,13 +28,13 @@ with TypedActor.PostStop {
     import scala.concurrent.duration._
     import scala.language.postfixOps
 
-    val clientRecep = //TODO: Figure out a way to configure where the remote receptionist is
-      TypedActor.context.actorSelection(apiUri)
+    val clientRecep = TypedActor.context.actorSelection(apiUri)
 
     //RegisterAPIClient returns a typed actor
-    val f = ask(clientRecep, RegisterAPIClient(TypedActor.context.self))(10 seconds).mapTo[HeliosAPI]
-
-    Await.result(f, 11 seconds)
+    Await.result(
+      ask(clientRecep, RegisterAPIClient(TypedActor.context.self))(10 seconds).mapTo[HeliosAPI],
+      11 seconds
+    )
   }
 
   override def preStart() = {
@@ -47,11 +47,14 @@ with TypedActor.PostStop {
 
   override def onReceive(message: Any, sender: ActorRef): Unit = {
     message match {
-      case m@SystemStatus(_, _, _, _, _) =>
-        statusStream.onNext(m)
+      case m: SystemStatus =>
+        statusStream onNext m
 
-      case m@SystemLocation(_) =>
-        locStream.onNext(m)
+      case m: SystemLocation =>
+        locStream onNext m
+
+      case m: AttitudeRad =>
+        attStream onNext m
 
       case _ =>
     }
@@ -89,12 +92,21 @@ object Streams {
   lazy val locStream: Subject[SystemLocation] = Subject()
 
   private[api]
-  lazy val attStream: Subject[Attitude] = Subject()
+  lazy val attStream: Subject[AttitudeRad] = Subject()
 
   implicit class HeliosAPIImp(val helios: HeliosAPI) {
-    val systemStatusStream: Observable[SystemStatus] = statusStream
-    val locationStream: Observable[SystemLocation] = locStream
-    val attitudeStream: Observable[Attitude] = attStream
+    lazy val systemStatusStream: Observable[SystemStatus] = statusStream
+    lazy val locationStream: Observable[SystemLocation] = locStream
+    lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
+    lazy val attitudeDegStream: Observable[AttitudeDeg] = attStream map {
+      a =>
+        println("AttitudeDeg Called..")
+        AttitudeDeg(
+          Math.toDegrees(a.roll).toFloat,
+          Math.toDegrees(a.pitch).toFloat,
+          Math.toDegrees(a.yaw).toFloat
+        )
+    }
   }
 
 }

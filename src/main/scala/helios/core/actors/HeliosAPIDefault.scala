@@ -11,6 +11,8 @@ import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import org.mavlink.messages._
 import org.mavlink.messages.common._
 import rx.lang.scala.Observable
+import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
+import helios.core.actors.flightcontroller.HeliosUART
 
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val uart: ActorRef, val systemID: Int) extends HeliosAPI
 with TypedActor.PreStart
@@ -19,7 +21,9 @@ with TypedActor.Receiver {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  lazy val context: ActorContext = TypedActor.context
+  val context: ActorContext = TypedActor.context
+  implicit val sender: ActorRef = context.self
+
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosAPIDefault])
 
   var criticalHandler: () => Unit =
@@ -34,6 +38,7 @@ with TypedActor.Receiver {
   //TODO: Move to client side
   var sysStatus: Option[SystemStatus] = None
   var sysLocation: Option[SystemLocation] = None
+  var sysAttitude: Option[AttitudeRad] = None
 
   override def preStart() = {
     context watch client
@@ -50,14 +55,19 @@ with TypedActor.Receiver {
     context.self ! PoisonPill
   }
 
-  override def updateSystemStatus(status: SystemStatus): Unit = {
+  def updateSystemStatus(status: SystemStatus): Unit = {
     sysStatus = Some(status)
     client ! status
   }
 
-  override def updateSystemLocation(location: SystemLocation): Unit = {
+  def updateSystemLocation(location: SystemLocation): Unit = {
     sysLocation = Some(location)
     client ! location
+  }
+
+  def updateSystemAttitude(attitude: AttitudeRad): Unit = {
+    sysAttitude = Some(attitude)
+    client ! attitude
   }
 
   override def onReceive(message: Any, sender: ActorRef): Unit = {
@@ -69,6 +79,8 @@ with TypedActor.Receiver {
             updateSystemStatus(SystemStatus(hb.`type`, hb.autopilot, hb.base_mode, hb.system_status, hb.sequence))
 
           case IMAVLinkMessageID.MAVLINK_MSG_ID_ATTITUDE =>
+            val att = ml.asInstanceOf[msg_attitude]
+            updateSystemAttitude(AttitudeRad(att.roll, att.pitch, att.yaw))
 
           case _ =>
         }
@@ -76,6 +88,9 @@ with TypedActor.Receiver {
       case Terminated(`client`) =>
         logger.warn("Client was terminated, killing self")
         context.self ! PoisonPill
+
+      case HeliosUART.NotAllowed(m: MAVLinkMessage) =>
+        logger.warn(s"Command not allowed: $m, please call takeControl() before trying to access flight functions")
 
       case _ =>
         logger.warn("API received something unknown")
@@ -190,8 +205,9 @@ with TypedActor.Receiver {
   //Application controlled
   override def leaveControl(): Unit = ???
 
-  override def takeControl(): Unit = ???
-
+  override def takeControl(): Unit = {
+    uart ! SetPrimary(context.self)
+  }
 
   override def disarmMotors: Future[CommandResult] = {
     Future {
