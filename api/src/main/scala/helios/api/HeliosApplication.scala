@@ -2,25 +2,26 @@ package helios.api
 
 import akka.actor._
 import akka.pattern.ask
-
-import helios.api.HeliosAPI._
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
-
 import scala.concurrent.Await
+import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
 
 object HeliosApplicationDefault {
+
   case class RegisterAPIClient(client: ActorRef)
 
   case class UnregisterAPIClient(client: HeliosAPI)
+
 }
 
 class HeliosApplicationDefault(apiUri: String) extends HeliosApplication
 with TypedActor.Receiver
 with TypedActor.PreStart
 with TypedActor.PostStop {
+
   import Streams._
 
   lazy val Helios: HeliosAPI = {
@@ -28,12 +29,12 @@ with TypedActor.PostStop {
     import scala.language.postfixOps
 
     val clientRecep = //TODO: Figure out a way to configure where the remote receptionist is
-      TypedActor.context.actorSelection("akka.tcp://Main@localhost:2552/user/app")
+      TypedActor.context.actorSelection(apiUri)
 
     //RegisterAPIClient returns a typed actor
-    val f = ask(clientRecep, RegisterAPIClient(TypedActor.context.self))(3 seconds).mapTo[HeliosAPI]
+    val f = ask(clientRecep, RegisterAPIClient(TypedActor.context.self))(10 seconds).mapTo[HeliosAPI]
 
-    Await.result(f, 4 seconds)
+    Await.result(f, 11 seconds)
   }
 
   override def preStart() = {
@@ -65,15 +66,15 @@ trait HeliosApplication {
 }
 
 object HeliosApplication {
-  def apply(apiHost: String, apiPort: String): HeliosApplication = {
-    val uri = s"akka.tcp://Main@$apiHost:$apiPort/user/app"
+  def apply(apiHost: String, apiPort: Int): HeliosApplication = {
+    val uri = s"akka.tcp://Main@$apiHost:$apiPort/user/*"
     val as = ActorSystem("HeliosAPI")
     TypedActor(as).typedActorOf(
       TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(uri)))
   }
 
   def apply(): HeliosApplication = {
-    val defaultUri = "akka.tcp://Main@localhost:2552/user/app"
+    val defaultUri = "akka.tcp://Main@localhost:2552/user/*"
     val as = ActorSystem("HeliosAPI")
     TypedActor(as).typedActorOf(
       TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(defaultUri)))
@@ -87,9 +88,13 @@ object Streams {
   private[api]
   lazy val locStream: Subject[SystemLocation] = Subject()
 
+  private[api]
+  lazy val attStream: Subject[Attitude] = Subject()
+
   implicit class HeliosAPIImp(val helios: HeliosAPI) {
     val systemStatusStream: Observable[SystemStatus] = statusStream
     val locationStream: Observable[SystemLocation] = locStream
+    val attitudeStream: Observable[Attitude] = attStream
   }
 
 }

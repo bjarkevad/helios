@@ -62,6 +62,8 @@ trait HeliosAPI {
   //INTERNAL USE
   def updateSystemStatus(status: SystemStatus): Unit
 
+  def updateSystemLocation(location: SystemLocation): Unit
+
   def ping(ms: Long): Unit
 
   //PUBLIC
