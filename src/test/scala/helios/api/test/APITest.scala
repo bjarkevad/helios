@@ -4,7 +4,6 @@ import org.scalatest._
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import akka.actor.{ActorRef, TypedProps, TypedActor, ActorSystem}
 import helios.api.{HeliosAPI, HeliosApplication}
-import helios.api.HeliosApplicationDefault.RegisterAPIClient
 import helios.core.actors.HeliosAPIDefault
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.lang.System.currentTimeMillis
@@ -12,13 +11,11 @@ import scala.concurrent.{Awaitable, Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import helios.core.actors.flightcontroller.FlightControllerMessages._
-import helios.api.HeliosAPI.CommandSuccess
-import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.api.HeliosAPI.{CommandFailure, CommandSuccess}
 import org.mavlink.messages.common._
 import org.mavlink.messages._
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
-import helios.api.HeliosAPI.CommandSuccess
 
 class APITest extends TestKit(ActorSystem("APITest"))
 with ImplicitSender
@@ -29,8 +26,9 @@ with BeforeAndAfterAll {
 
   var helios: Option[HeliosAPI] = None
   val probe: TestProbe = TestProbe()
+  val client: TestProbe = TestProbe()
   val uart: TestProbe = TestProbe()
-  implicit val atMost: FiniteDuration = 1 second
+  implicit val atMost: FiniteDuration = 2 second
 
   implicit class blocker[T](a: Awaitable[T]) {
     def block(implicit atMost: Duration): T = {
@@ -39,10 +37,8 @@ with BeforeAndAfterAll {
   }
 
   implicit class actorreffor(hapi: HeliosAPI) {
-    def ref: ActorRef = helios.map {
-      h =>
-        TypedActor(system).getActorRefFor(h)
-    }.get
+    def ref: ActorRef =
+      helios.map(TypedActor(system).getActorRefFor(_)).get
   }
 
   lazy val hbdefault = {
@@ -55,6 +51,12 @@ with BeforeAndAfterAll {
     hb.system_status = MAV_STATE.MAV_STATE_STANDBY
     hb.mavlink_version = 3
 
+    hb
+  }
+
+  lazy val hbflying: msg_heartbeat = {
+    val hb = hbdefault
+    hb.base_mode = MAV_MODE.MAV_MODE_STABILIZE_ARMED
     hb
   }
 
@@ -71,7 +73,7 @@ with BeforeAndAfterAll {
 
     probe.expectMsgClass(classOf[RegisterAPIClient])
     val heliosapi: HeliosAPI = TypedActor(system).typedActorOf(TypedProps(
-      classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, probe.sender, uart.ref, 20)))
+      classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, client.ref, uart.ref, 20)))
 
     probe.send(probe.sender, heliosapi)
   }
@@ -82,18 +84,19 @@ with BeforeAndAfterAll {
 
   "Helios API" should "connect correctly to the core" in helios.map {
     h =>
-      val res = Await.result(h.ping(currentTimeMillis), 1 second)
+      val res = h.ping(currentTimeMillis).block
       println(s"Time: $res")
-      (res > 0) should be(true)
+      (res >= 0) should be(true)
   }
 
-  it should "be able to calibrate sensors" in helios.map {
+  it should "ONLY be able to calibrate sensors when not flying" in helios.map {
     h =>
       setStatus(hbdefault)
-      val f = h.calibrateSensors.map(_ should be(CommandSuccess()))
-      //uart.expectMsgClass(classOf[WriteMAVLink])
+      h.calibrateSensors map (_ should be(CommandSuccess()))
+      uart.expectMsgClass(classOf[WriteMAVLink])
 
-      println(f.block)
+      setStatus(hbflying)
+      h.calibrateSensors.block.getClass should be(classOf[CommandFailure])
   }
 
   it should "" in helios.map {
