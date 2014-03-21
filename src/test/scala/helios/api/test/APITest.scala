@@ -21,10 +21,22 @@ class APITest extends TestKit(ActorSystem("APITest"))
 with ImplicitSender
 with FlatSpecLike
 with Matchers
-with BeforeAndAfter
-with BeforeAndAfterAll {
+with BeforeAndAfterEach {
 
-  var helios: Option[HeliosAPI] = None
+  lazy val helios: Option[HeliosAPI] = {
+    val res = Future {
+      //HeliosApplication.apply blocks!
+      Option(HeliosApplication(system, probe.ref.path).Helios)
+    }
+
+    probe.expectMsgClass(classOf[RegisterAPIClient])
+    val heliosapi: HeliosAPI = TypedActor(system).typedActorOf(TypedProps(
+      classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, client.ref, uart.ref, 20)))
+
+    probe.send(probe.sender, heliosapi)
+    res.block
+  }
+
   val probe: TestProbe = TestProbe()
   val client: TestProbe = TestProbe()
   val uart: TestProbe = TestProbe()
@@ -65,22 +77,6 @@ with BeforeAndAfterAll {
       uart.send(h.ref, PublishMAVLink(hb))
   }
 
-  before {
-    Future {
-      //HeliosApplication.apply blocks!
-      helios = Option(HeliosApplication(system, probe.ref.path).Helios)
-    }
-
-    probe.expectMsgClass(classOf[RegisterAPIClient])
-    val heliosapi: HeliosAPI = TypedActor(system).typedActorOf(TypedProps(
-      classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, client.ref, uart.ref, 20)))
-
-    probe.send(probe.sender, heliosapi)
-  }
-
-  after {
-    helios map (_.terminate())
-  }
 
   "Helios API" should "connect correctly to the core" in helios.map {
     h =>
@@ -99,9 +95,9 @@ with BeforeAndAfterAll {
       h.calibrateSensors.block.getClass should be(classOf[CommandFailure])
   }
 
-  it should "" in helios.map {
-    h =>
+    it should "" in helios.map {
+      h =>
 
-  }
+    }
 
 }
