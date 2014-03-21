@@ -17,7 +17,7 @@ object HeliosApplicationDefault {
 
 }
 
-class HeliosApplicationDefault(apiUri: String) extends HeliosApplication
+class HeliosApplicationDefault(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
 with TypedActor.PreStart
 with TypedActor.PostStop {
@@ -28,11 +28,10 @@ with TypedActor.PostStop {
     import scala.concurrent.duration._
     import scala.language.postfixOps
 
-    val clientRecep = TypedActor.context.actorSelection(apiUri)
 
     //RegisterAPIClient returns a typed actor
     Await.result(
-      ask(clientRecep, RegisterAPIClient(TypedActor.context.self))(10 seconds).mapTo[HeliosAPI],
+      ask(clientReceptionist, RegisterAPIClient(TypedActor.context.self))(10 seconds).mapTo[HeliosAPI],
       11 seconds
     )
   }
@@ -43,6 +42,7 @@ with TypedActor.PostStop {
 
   override def postStop() = {
     Helios.terminate()
+    TypedActor.context.system.shutdown()
   }
 
   override def onReceive(message: Any, sender: ActorRef): Unit = {
@@ -70,17 +70,26 @@ trait HeliosApplication {
 
 object HeliosApplication {
   def apply(apiHost: String, apiPort: Int): HeliosApplication = {
-    val uri = s"akka.tcp://Main@$apiHost:$apiPort/user/*"
+    val uri = s"akka.tcp://Main@$apiHost:$apiPort/user/receptionist"
     val as = ActorSystem("HeliosAPI")
+    val clientRecep = TypedActor(as).system.provider.resolveActorRef(uri)
     TypedActor(as).typedActorOf(
-      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(uri)))
+      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(clientRecep)))
   }
 
   def apply(): HeliosApplication = {
-    val defaultUri = "akka.tcp://Main@localhost:2552/user/*"
+    val defaultUri = "akka.tcp://Main@localhost:2552/user/receptionist"
     val as = ActorSystem("HeliosAPI")
+    val clientRecep = TypedActor(as).system.provider.resolveActorRef(defaultUri)
     TypedActor(as).typedActorOf(
-      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(defaultUri)))
+      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(clientRecep)))
+  }
+
+  private[api]
+  def apply(system: ActorSystem, path: ActorPath): HeliosApplication = {
+    val clientRecep = TypedActor(system).system.provider.resolveActorRef(path)
+    TypedActor(system).typedActorOf(
+      TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(clientRecep)))
   }
 }
 
@@ -100,7 +109,6 @@ object Streams {
     lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
     lazy val attitudeDegStream: Observable[AttitudeDeg] = attStream map {
       a =>
-        println("AttitudeDeg Called..")
         AttitudeDeg(
           Math.toDegrees(a.roll).toFloat,
           Math.toDegrees(a.pitch).toFloat,
@@ -108,5 +116,4 @@ object Streams {
         )
     }
   }
-
 }

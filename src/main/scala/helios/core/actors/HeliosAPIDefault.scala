@@ -13,6 +13,7 @@ import org.mavlink.messages.common._
 import rx.lang.scala.Observable
 import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 import helios.core.actors.flightcontroller.HeliosUART
+import java.lang.System.currentTimeMillis
 
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val uart: ActorRef, val systemID: Int) extends HeliosAPI
 with TypedActor.PreStart
@@ -31,9 +32,11 @@ with TypedActor.Receiver {
   var emergencyHandler: () => Unit =
     () => logger.warn("System entered emergency mode with no handler!")
 
-  override def setCriticalHandler(f: () => Unit): Unit = criticalHandler = f
+  override def setCriticalHandler(f: () => Unit): Unit =
+    criticalHandler = f
 
-  override def setEmergencyHandler(f: () => Unit): Unit = emergencyHandler = f
+  override def setEmergencyHandler(f: () => Unit): Unit =
+    emergencyHandler = f
 
   //TODO: Move to client side
   var sysStatus: Option[SystemStatus] = None
@@ -90,15 +93,16 @@ with TypedActor.Receiver {
         context.self ! PoisonPill
 
       case HeliosUART.NotAllowed(m: MAVLinkMessage) =>
-        logger.warn(s"Command not allowed: $m, please call takeControl() before trying to access flight functions")
+        logger.warn(s"Command not allowed" +
+          s"setStatus(hbdefault): $m, please call takeControl() before trying to access flight functions")
 
       case _ =>
         logger.warn("API received something unknown")
     }
   }
 
-  override def ping(ms: Long): Unit = {
-    //println(currentTimeMillis() - ms)
+  override def ping(sent_ms: Long): Future[Long] = {
+    Future(currentTimeMillis() - sent_ms)
   }
 
   override def newMission(mission: Mission): Unit = ???
@@ -268,7 +272,6 @@ with TypedActor.Receiver {
 
   override def systemStatus: Option[SystemStatus] = sysStatus
 
-  //override def systemStatusStream: Observable[SystemStatus] = sysSubject
 }
 
 object HeliosAPIDefault {

@@ -33,7 +33,8 @@ object TestApp extends App {
 //  Helios.armMotors map println
 
   //Helios.systemStatusStream.subscribe(println(_))
-  Helios.attitudeRadStream.subscribe(println(_))
+  Helios.attitudeRadStream.subscribe(v => println(s"Rad: $v"))
+  Helios.attitudeDegStream.subscribe(v => println(s"Deg: $v"))
 
   class attRun extends Runnable {
     var p = 0

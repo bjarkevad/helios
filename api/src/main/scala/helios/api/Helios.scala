@@ -59,7 +59,8 @@ trait HeliosAPI {
 
   import HeliosAPI._
 
-  def ping(ms: Long): Unit
+  //Returns the difference between sent_ms and received_ms
+  def ping(sent_ms: Long): Future[Long]
 
   //PUBLIC
   def terminate(): Unit
