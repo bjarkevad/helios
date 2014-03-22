@@ -27,16 +27,12 @@ with TypedActor.Receiver {
 
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosAPIDefault])
 
-  var criticalHandler: () => Unit =
-    () => logger.warn("System entered critical mode with no handler!")
-  var emergencyHandler: () => Unit =
-    () => logger.warn("System entered emergency mode with no handler!")
 
-  override def setCriticalHandler(f: () => Unit): Unit =
-    criticalHandler = f
-
-  override def setEmergencyHandler(f: () => Unit): Unit =
-    emergencyHandler = f
+//  override def setCriticalHandler(f: () => Unit): Unit =
+//    criticalHandler = f
+//
+//  override def setEmergencyHandler(f: () => Unit): Unit =
+//    emergencyHandler = f
 
   //TODO: Move to client side
   var sysStatus: Option[SystemStatus] = None
@@ -264,9 +260,9 @@ with TypedActor.Receiver {
     }
   }
 
-  override def setShutDownHandler(f: () => Unit): Unit = ???
-
-  override def setStartUpHandler(f: () => Unit): Unit = ???
+//  override def setShutDownHandler(f: () => Unit): Unit = ???
+//
+//  override def setStartUpHandler(f: () => Unit): Unit = ???
 
   override def getFlightMode: Future[FlightMode] = ???
 

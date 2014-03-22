@@ -8,7 +8,6 @@ import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
-import rx.lang.scala.subjects.BehaviorSubject
 
 object HeliosApplicationDefault {
 
@@ -46,8 +45,20 @@ with TypedActor.PostStop {
   }
 
   override def onReceive(message: Any, sender: ActorRef): Unit = {
+    import org.mavlink.messages.MAV_STATE
+    import Handlers._
+
+    println("onReceive!")
+
     message match {
       case m: SystemStatus =>
+        m.status match {
+          case MAV_STATE.MAV_STATE_EMERGENCY =>
+            emergencyHandler()
+          case MAV_STATE.MAV_STATE_CRITICAL =>
+            criticalHandler()
+          case _ =>
+        }
         statusStream onNext m
 
       case m: SystemLocation =>
@@ -105,7 +116,7 @@ object Streams {
   private[api]
   lazy val attStream: Subject[AttitudeRad] = Subject()
 
-  implicit class HeliosAPIImp(val helios: HeliosAPI) {
+  implicit class StreamsImp(val helios: HeliosAPI) {
     lazy val systemStatusStream: Observable[SystemStatus] = statusStream
     lazy val locationStream: Observable[SystemLocation] = locStream
     lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
@@ -117,5 +128,22 @@ object Streams {
           Math.toDegrees(a.yaw).toFloat
         )
     }
+  }
+}
+
+object Handlers {
+  private[api]
+  var criticalHandler: () => Unit =
+    () => println("System entered critical mode with no handler!")
+
+  var emergencyHandler: () => Unit =
+    () => println("System entered emergency mode with no handler!")
+
+  implicit class HandlersImp(val helios: HeliosAPI) {
+    def setCriticalHandler(f: () => Unit): Unit =
+      criticalHandler = f
+
+    def setEmergencyHandler(f: () => Unit): Unit =
+      emergencyHandler = f
   }
 }

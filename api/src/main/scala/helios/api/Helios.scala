@@ -67,13 +67,13 @@ trait HeliosAPI {
 
   def getFlightMode: Future[FlightMode] //System flightmode
 
-  def setStartUpHandler(f: () => Unit): Unit
-
-  def setShutDownHandler(f: () => Unit): Unit
-
-  def setCriticalHandler(f: () => Unit): Unit
-
-  def setEmergencyHandler(f: () => Unit): Unit
+//  def setStartUpHandler(f: () => Unit): Unit
+//
+//  def setShutDownHandler(f: () => Unit): Unit
+//
+//  def setCriticalHandler(f: () => Unit): Unit
+//
+//  def setEmergencyHandler(f: () => Unit): Unit
 
   def calibrateSensors: Future[CommandResult]
 
