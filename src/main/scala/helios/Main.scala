@@ -5,4 +5,4 @@ object Main extends App {
   import helios.core.actors.ClientReceptionist
 
   ActorSystem("Main").actorOf(ClientReceptionist.props, "receptionist")
-
+}
