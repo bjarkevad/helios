@@ -64,10 +64,10 @@ class ClientReceptionist extends Actor {
           .typedActorOf(TypedProps(
           classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c, uart, 20)))
 
-      clients put(TypedActor(context.system).getActorRefFor(hd), c)
-
       if (clients.isEmpty)
         uart ! SetPrimary(c)
+
+      clients put(TypedActor(context.system).getActorRefFor(hd), c)
 
       sender ! hd
 
@@ -91,7 +91,6 @@ class ClientReceptionist extends Actor {
 
     case Terminated(a) =>
       logger.debug("Unhandled terminated message")
-
   }
 }
 
@@ -102,8 +101,6 @@ object CoreMessages {
   trait Request
 
   trait Response
-
-  trait PutRequest
 
   case class RegisterClient(client: ActorRef) extends Request
 

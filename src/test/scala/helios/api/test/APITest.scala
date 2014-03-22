@@ -53,7 +53,7 @@ with BeforeAndAfterEach {
       helios.map(TypedActor(system).getActorRefFor(_)).get
   }
 
-  lazy val hbdefault = {
+  lazy val default = {
     val hb = new msg_heartbeat(20, MAV_COMPONENT.MAV_COMP_ID_IMU)
     hb.sequence = 0
     hb.`type` = MAV_TYPE.MAV_TYPE_QUADROTOR
@@ -66,8 +66,8 @@ with BeforeAndAfterEach {
     hb
   }
 
-  lazy val hbflying: msg_heartbeat = {
-    val hb = hbdefault
+  lazy val flying: msg_heartbeat = {
+    val hb = default
     hb.base_mode = MAV_MODE.MAV_MODE_STABILIZE_ARMED
     hb
   }
@@ -87,11 +87,11 @@ with BeforeAndAfterEach {
 
   it should "ONLY be able to calibrate sensors when not flying" in helios.map {
     h =>
-      setStatus(hbdefault)
+      setStatus(default)
       h.calibrateSensors map (_ should be(CommandSuccess()))
       uart.expectMsgClass(classOf[WriteMAVLink])
 
-      setStatus(hbflying)
+      setStatus(flying)
       h.calibrateSensors.block.getClass should be(classOf[CommandFailure])
   }
 

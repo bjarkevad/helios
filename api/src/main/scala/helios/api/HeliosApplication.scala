@@ -8,6 +8,7 @@ import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
+import rx.lang.scala.subjects.BehaviorSubject
 
 object HeliosApplicationDefault {
 
@@ -27,7 +28,6 @@ with TypedActor.PostStop {
   lazy val Helios: HeliosAPI = {
     import scala.concurrent.duration._
     import scala.language.postfixOps
-
 
     //RegisterAPIClient returns a typed actor
     Await.result(
@@ -85,6 +85,7 @@ object HeliosApplication {
       TypedProps(classOf[HeliosApplication], new HeliosApplicationDefault(clientRecep)))
   }
 
+  //TODO: Used by tests, reconsider how this is done
   private[api]
   def apply(system: ActorSystem, path: ActorPath): HeliosApplication = {
     val clientRecep = TypedActor(system).system.provider.resolveActorRef(path)
@@ -93,6 +94,7 @@ object HeliosApplication {
   }
 }
 
+//TODO: Use BehaviorSubjects to cache the latest message for new subscribers
 object Streams {
   private[api]
   lazy val statusStream: Subject[SystemStatus] = Subject()
