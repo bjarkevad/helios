@@ -48,8 +48,6 @@ with TypedActor.PostStop {
     import org.mavlink.messages.MAV_STATE
     import Handlers._
 
-    println("onReceive!")
-
     message match {
       case m: SystemStatus =>
         m.status match {

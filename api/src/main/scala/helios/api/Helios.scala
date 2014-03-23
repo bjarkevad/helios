@@ -70,10 +70,6 @@ trait HeliosAPI {
 //  def setStartUpHandler(f: () => Unit): Unit
 //
 //  def setShutDownHandler(f: () => Unit): Unit
-//
-//  def setCriticalHandler(f: () => Unit): Unit
-//
-//  def setEmergencyHandler(f: () => Unit): Unit
 
   def calibrateSensors: Future[CommandResult]
 
@@ -82,9 +78,6 @@ trait HeliosAPI {
   def disarmMotors: Future[CommandResult]
 
   def systemStatus: Option[SystemStatus]
-
-  //* heartbeat
-  //def systemStatusStream: Observable[SystemStatus]
 
   def takeControl(): Unit
 
