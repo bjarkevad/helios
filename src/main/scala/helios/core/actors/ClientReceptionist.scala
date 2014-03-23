@@ -28,10 +28,9 @@ class ClientReceptionist extends Actor {
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
-  val uartManager: ActorRef = {
+  lazy val uartManager: ActorRef = {
     HeliosConfig.serialdevice match {
       case Some(_) => IO(Serial)
-      //case Some(_) => context.actorOf(MockSerial.props)
       case None => context.actorOf(MockSerial.props)
     }
   }

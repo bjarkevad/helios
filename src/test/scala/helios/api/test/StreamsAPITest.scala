@@ -32,7 +32,7 @@ class StreamsAPITest extends APITestBase {
     h =>
   }
 
-  it should "update attitude in radians" in helios.map {
+  ignore should "update attitude in radians" in helios.map {
     h =>
       val r = 90
       val p = 180
@@ -55,7 +55,7 @@ class StreamsAPITest extends APITestBase {
       }
   }
 
-  it should "update attitude in degrees" in helios.map {
+  ignore should "update attitude in degrees" in helios.map {
     h =>
       val r = 90
       val p = 180
@@ -69,6 +69,7 @@ class StreamsAPITest extends APITestBase {
           setAttitude(attDeg)
       }
 
-      h.attitudeDegStream.take(expectedCount).toBlockingObservable.foreach(_ should be(attDeg))
+      h.attitudeDegStream.take(expectedCount).toBlockingObservable
+        .foreach(_ should be(attDeg))
   }
 }
