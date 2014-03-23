@@ -31,14 +31,14 @@ class APITest extends APITestBase {
     h =>
       h.setCriticalHandler(() => probe.send(probe.ref, "CRITICAL"))
       setStatus(critical)
-      probe.expectMsg(50 millis, "CRITICAL")
+      probe.expectMsg(150 millis, "CRITICAL")
   }
 
-  it should "call the emergency handler when system enters critical mode" in helios.map {
+  it should "call the emergency handler when system enters emergency mode" in helios.map {
     h =>
       h.setEmergencyHandler(() => probe.send(probe.ref, "EMERGENCY"))
       setStatus(emergency)
-      probe.expectMsg(50 millis, "EMERGENCY")
+      probe.expectMsg(150 millis, "EMERGENCY")
   }
 
   it should "allow arming and disarming motors in the correct modes" in helios.map {
