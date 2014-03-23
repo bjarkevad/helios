@@ -1,4 +1,3 @@
-import AssemblyKeys._
 
 name := "core-runtime"
 
@@ -15,7 +14,7 @@ lazy val coreruntime = (project in file(".")).
   settings(assemblySettings: _*).
   dependsOn(api)
 
-//test in assembly := {}
+test in assembly := {}
 
 mainClass in assembly := Some("helios.Main")
 
@@ -31,9 +30,12 @@ resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 //Core
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.0" % "test",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.0",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.0",
-  "com.typesafe.akka" %% "akka-remote" % "2.3.0"
+//  "com.typesafe.akka" %% "akka-actor" % "2.3.0",
+//  "com.typesafe.akka" %% "akka-testkit" % "2.3.0",
+//  "com.typesafe.akka" %% "akka-remote" % "2.3.0"
+  "com.typesafe.akka" %% "akka-actor" % "2.2.3",
+  "com.typesafe.akka" %% "akka-testkit" % "2.2.3",
+  "com.typesafe.akka" %% "akka-remote" % "2.2.3"
 )
 
 //Misc

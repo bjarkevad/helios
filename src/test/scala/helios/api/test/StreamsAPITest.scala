@@ -14,17 +14,17 @@ class StreamsAPITest extends APITestBase {
       val expectedCount = 10
 
       Future {
-        Thread.sleep(100)
-        for (i <- 0 until expectedCount)
+        while (true)
           setStatus(default)
       }
 
       h.systemStatusStream.take(expectedCount).toBlockingObservable
-      .foreach { hb =>
-        hb.mavtype should be(MAV_TYPE.MAV_TYPE_QUADROTOR)
-        hb.autopilot should be(MAV_AUTOPILOT.MAV_AUTOPILOT_GENERIC)
-        hb.mode should be(MAV_MODE.MAV_MODE_PREFLIGHT)
-        hb.status should be(MAV_STATE.MAV_STATE_STANDBY)
+        .foreach {
+        hb =>
+          hb.mavtype should be(MAV_TYPE.MAV_TYPE_QUADROTOR)
+          hb.autopilot should be(MAV_AUTOPILOT.MAV_AUTOPILOT_GENERIC)
+          hb.mode should be(MAV_MODE.MAV_MODE_PREFLIGHT)
+          hb.status should be(MAV_STATE.MAV_STATE_STANDBY)
       }
   }
 

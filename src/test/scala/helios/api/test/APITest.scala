@@ -76,6 +76,11 @@ class APITest extends APITestBase {
 
   }
 
+  it should "not allow change in attitude beyond the predefined limits" in helios.map {
+    h =>
+
+  }
+
   it should "" in helios.map {
     h =>
 

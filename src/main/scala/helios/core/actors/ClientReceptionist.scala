@@ -10,8 +10,9 @@ import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
 
-
 import org.slf4j.LoggerFactory
+import helios.HeliosConfig
+import com.github.jodersky.flow.Serial
 
 object ClientReceptionist {
   def props: Props = Props(new ClientReceptionist)
@@ -27,13 +28,18 @@ class ClientReceptionist extends Actor {
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
-  //TODO: Move this to config file
-  val mockSerial = context.actorOf(MockSerial.props)
-  val uart = context.actorOf(HeliosUART.props(self, mockSerial, null))
+  val uartManager: ActorRef = {
+    HeliosConfig.serialdevice match {
+      case Some(_) => IO(Serial)
+      //case Some(_) => context.actorOf(MockSerial.props)
+      case None => context.actorOf(MockSerial.props)
+    }
+  }
 
-  //TODO: Move this to config file
+  val uart = context.actorOf(HeliosUART.props(self, uartManager))
+
   val groundControl =
-    context.actorOf(GroundControl.props(IO(UdpConnected), "localhost", 14550), "GroundControl")
+    context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
 
   context watch groundControl
 

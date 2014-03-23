@@ -14,21 +14,27 @@ import org.slf4j.LoggerFactory
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import helios.core.actors.CoreMessages._
+import helios.HeliosConfig
 
 object GroundControl {
-  def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager, "localhost", 14550))
 
-  def props(udpManager: ActorRef, hostName: String, port: Int): Props = Props(new GroundControl(udpManager, hostName, port))
+  def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager))
 }
 
-class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends Actor with Stash {
+class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
   import language.postfixOps
 
   lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
 
+  lazy val address: InetSocketAddress = {
+    HeliosConfig.groundcontrolAddress
+    .getOrElse(new InetSocketAddress("localhost", 14550))
+  }
+
   override def preStart() = {
-    udpManager ! UdpConnected.Connect(self, new InetSocketAddress(hostName, port))
+    logger.debug(s"Address: ${address.getHostName}: ${address.getPort}")
+    udpManager ! UdpConnected.Connect(self, address)
     context.parent ! RegisterClient(self)
   }
 
@@ -47,7 +53,7 @@ class GroundControl(udpManager: ActorRef, hostName: String, port: Int) extends A
       }
 
     case UdpConnected.CommandFailed(cmd: UdpConnected.Connect) =>
-      logger.warn(s"Groundcontrol could not connect to $hostName:$port")
+      logger.warn(s"Groundcontrol could not connect to ${address.getHostName}:${address.getPort}")
       self ! PoisonPill
 
     case Registered(handler) =>

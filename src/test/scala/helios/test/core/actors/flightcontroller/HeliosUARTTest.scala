@@ -58,7 +58,7 @@ with ImplicitSender {
   lazy val recep = TestProbe()
 
   def initUART: ActorRef = {
-    val hu = system.actorOf(HeliosUART.props(recep.ref, uartManager.ref, settings))
+    val hu = system.actorOf(HeliosUART.props(recep.ref, uartManager.ref))
     uartManager.expectMsg(Serial.Open(settings))
     uartManager.send(hu, Serial.Opened(settings, operator.ref))
     operator.expectMsg(Serial.Register(hu))

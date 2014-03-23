@@ -2,23 +2,23 @@ package helios.core.actors.flightcontroller
 
 import akka.actor._
 import akka.util.ByteString
+import scala.util.{Failure, Success}
 
-import org.slf4j.LoggerFactory
 import helios.core.actors.flightcontroller.FlightControllerMessages._
 import helios.mavlink.MAVLink.convertToMAVLink
-
-import com.github.jodersky.flow.Serial
-import com.github.jodersky.flow.SerialSettings
-import scala.util.{Failure, Success}
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.HeliosConfig
 
+import com.github.jodersky.flow.{Parity, Serial, SerialSettings}
+import org.slf4j.LoggerFactory
 import org.mavlink.messages.IMAVLinkMessageID._
 import org.mavlink.messages.{MAV_CMD, MAVLinkMessage}
 import org.mavlink.messages.common.msg_command_long
 
 object HeliosUART {
-  def props(subscriptionHandler: ActorRef, serialManager: ActorRef, settings: SerialSettings): Props =
-    Props(new HeliosUART(subscriptionHandler, serialManager, settings))
+  def props(subscriptionHandler: ActorRef, uartManager: ActorRef): Props = {
+    Props(new HeliosUART(subscriptionHandler, uartManager))
+  }
 
   lazy val privilegedMessages: Set[Int] = Set(
     MAVLINK_MSG_ID_SET_ROLL_PITCH_YAW_SPEED_THRUST,
@@ -48,13 +48,32 @@ object HeliosUART {
 
 }
 
-class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef, settings: SerialSettings) extends Actor {
+class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends Actor {
 
   import HeliosUART._
 
+  //implicit val system = context.system
+
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
+  //  lazy val uartManager: ActorRef = {
+  //    HeliosConfig.serialdevice match {
+  //      case Some(_) => IO(Tcp)
+  //      case None => context.actorOf(MockSerial.props)
+  //    }
+  //  }
+  lazy val settings: SerialSettings = {
+    SerialSettings(
+      HeliosConfig.serialdevice.getOrElse("/dev/ttyUSB0"),
+      HeliosConfig.serialBaudrate.getOrElse(115200),
+      8,
+      false,
+      Parity(0)
+    )
+  }
+
   override def preStart() = {
+    logger.debug(s"Serial settings: $settings")
     uartManager ! Serial.Open(settings)
   }
 
