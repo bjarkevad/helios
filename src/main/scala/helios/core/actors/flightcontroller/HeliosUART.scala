@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import org.mavlink.messages.IMAVLinkMessageID._
 import org.mavlink.messages.{MAV_CMD, MAVLinkMessage}
 import org.mavlink.messages.common.msg_command_long
+import scala.collection.mutable
 
 object HeliosUART {
   def props(subscriptionHandler: ActorRef, uartManager: ActorRef): Props = {
@@ -56,6 +57,8 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
 
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
+  var messageBuffer: ByteString = ByteString()
+  var nextLen: Int = 0
   //  lazy val uartManager: ActorRef = {
   //    HeliosConfig.serialdevice match {
   //      case Some(_) => IO(Tcp)
@@ -93,11 +96,33 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
 
   def opened(operator: ActorRef, primary: ActorRef): Receive = {
     case Serial.Received(data) =>
-      convertToMAVLink(data) match {
-        case Success(m) => subscriptionHandler ! PublishMAVLink(m)
-        case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
-        case e@_ => logger.warn(s"What the heck? $e")
+      var ok = false
+      if(data(0) == -2 && messageBuffer.isEmpty) {
+        nextLen = data(1) + 8
+        println("message started")
+        messageBuffer = data
+        ok = true
       }
+      else if (messageBuffer.length < nextLen) {
+        println("more of a message")
+        messageBuffer = messageBuffer ++ data
+        ok = true
+      }
+
+      if(messageBuffer.length >= nextLen) {
+        println(s"message done $messageBuffer")
+
+        convertToMAVLink(messageBuffer) match {
+          case Success(m) => subscriptionHandler ! PublishMAVLink(m)
+          case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
+          case e@_ => logger.warn(s"What the heck? $e")
+        }
+
+        messageBuffer = ByteString()
+        ok = true
+      }
+
+      println(s"Ok: $ok")
 
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)

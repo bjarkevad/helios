@@ -31,6 +31,9 @@ class ClientReceptionist extends Actor {
   lazy val uartManager: ActorRef = {
     HeliosConfig.serialdevice match {
       case Some(_) => IO(Serial)
+
+//      case Some(_) => context.actorOf(Props(new SerialManager))
+
       case None => context.actorOf(MockSerial.props)
     }
   }

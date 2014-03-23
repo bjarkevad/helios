@@ -31,15 +31,15 @@ resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 //Core
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.0" % "test",
-  "com.typesafe.akka" %% "akka-actor" % "2.2.3",
-  "com.typesafe.akka" %% "akka-testkit" % "2.2.3",
-  "com.typesafe.akka" %% "akka-remote" % "2.2.3"
+  "com.typesafe.akka" %% "akka-actor" % "2.3.0",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.0",
+  "com.typesafe.akka" %% "akka-remote" % "2.3.0"
 )
 
 //Misc
 libraryDependencies ++= Seq(
   "net.java.dev.jna" % "jna" % "4.0.0",
-  "com.github.jodersky" %% "flow" % "1.1.0",
+  "com.github.jodersky" %% "flow" % "1.1.1-917a6bc5d88d765ec6d80c8ccce108849b3c4f78",
   "com.netflix.rxjava" % "rxjava-scala" % "0.16.1"
 )
 
