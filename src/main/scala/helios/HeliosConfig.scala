@@ -26,11 +26,17 @@ object HeliosConfig {
 
   lazy val groundcontrolAddress: Option[InetSocketAddress] = {
     val host: Option[String] = config.flatMap {
-      c => Try(c.getString("helios.groundcontrol.host")).toOption
+      c =>
+        Try(c.getString("helios.groundcontrol.host"))
+          //.orElse(Try("localhost"))
+          .toOption
     }
 
     val port: Option[Int] = config.flatMap {
-      c => Try(c.getInt("helios.groundcontrol.port")).toOption
+      c =>
+        Try(c.getInt("helios.groundcontrol.port"))
+          //.orElse(Try(14550))
+          .toOption
     }
 
     Try(new InetSocketAddress(host.get, port.get)).toOption

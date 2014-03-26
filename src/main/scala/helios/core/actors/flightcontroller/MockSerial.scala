@@ -68,6 +68,8 @@ class MockSerial extends Actor {
           msg.yaw = mll.yaw
           sender ! Serial.Received(ByteString(msg.encode()))
         case _ =>
+          logger.debug("Unhandled message, loopback")
+          sender ! Serial.Received(bs)
       }
     case m@_ => logger.debug(s"Received $m")
   }

@@ -1,6 +1,6 @@
 import AssemblyKeys._
 
-name := "core-runtime"
+name := "coreruntime"
 
 version := "0.0.0"
 
@@ -40,6 +40,7 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "net.java.dev.jna" % "jna" % "4.0.0",
   "com.github.jodersky" %% "flow" % "1.1.1-917a6bc5d88d765ec6d80c8ccce108849b3c4f78",
+  //"com.github.jodersky" %% "flow" % "1.2.0",
   "com.netflix.rxjava" % "rxjava-scala" % "0.16.1"
 )
 

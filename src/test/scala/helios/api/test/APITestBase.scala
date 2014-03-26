@@ -60,7 +60,7 @@ with BeforeAndAfterEach {
       heliosApp.map(TypedActor(system).getActorRefFor(_)).get
   }
 
-  lazy val default = {
+  lazy val preflight = {
     val hb = new msg_heartbeat(20, MAV_COMPONENT.MAV_COMP_ID_IMU)
     hb.sequence = 0
     hb.`type` = MAV_TYPE.MAV_TYPE_QUADROTOR
@@ -74,19 +74,19 @@ with BeforeAndAfterEach {
   }
 
   lazy val flying: msg_heartbeat = {
-    val hb = default
+    val hb = preflight
     hb.base_mode = MAV_MODE.MAV_MODE_STABILIZE_ARMED
     hb
   }
 
   lazy val critical: msg_heartbeat = {
-    val hb = default
+    val hb = preflight
     hb.system_status = MAV_STATE.MAV_STATE_CRITICAL
     hb
   }
 
   lazy val emergency: msg_heartbeat = {
-    val hb = default
+    val hb = preflight
     hb.system_status = MAV_STATE.MAV_STATE_EMERGENCY
     hb
   }

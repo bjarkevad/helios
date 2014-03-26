@@ -15,7 +15,7 @@ class StreamsAPITest extends APITestBase {
 
       Future {
         while (true)
-          setStatus(default)
+          setStatus(preflight)
       }
 
       h.systemStatusStream.take(expectedCount).toBlockingObservable

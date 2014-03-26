@@ -71,7 +71,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
       HeliosConfig.serialBaudrate.getOrElse(115200),
       8,
       false,
-      Parity(0)
+      Parity.None
     )
   }
 
@@ -89,6 +89,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
       throw reason //LET IT CRASH!
 
     case Serial.Opened(set, operator) =>
+      logger.debug(s"Serial port opened with settings: $set")
       context become opened(operator, context.parent)
       context watch operator
       operator ! Serial.Register(self)
@@ -96,6 +97,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
 
   def opened(operator: ActorRef, primary: ActorRef): Receive = {
     case Serial.Received(data) =>
+      logger.debug(s"Received: $data")
       var ok = false
       if(data(0) == -2 && messageBuffer.isEmpty) {
         nextLen = data(1) + 8
@@ -122,8 +124,6 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
         ok = true
       }
 
-      println(s"Ok: $ok")
-
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)
       operator ! Serial.Write(dataBs, WriteAck(dataBs))
@@ -137,6 +137,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
       sender ! NotAllowed(msg)
 
     case WriteMAVLink(msg) =>
+      logger.debug(s"Writing MAVLink to UART: $msg")
       operator ! Serial.Write(ByteString(msg.encode()))
 
     case SetPrimary(newPrimary) =>

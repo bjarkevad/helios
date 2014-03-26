@@ -19,7 +19,7 @@ class APITest extends APITestBase {
 
   it should "ONLY allow calibrating sensors when not flying" in helios.map {
     h =>
-      setStatus(default)
+      setStatus(preflight)
       h.calibrateSensors map (_ should be(CommandSuccess()))
       uart.expectMsgClass(classOf[WriteMAVLink])
 
@@ -43,7 +43,12 @@ class APITest extends APITestBase {
 
   it should "allow arming and disarming motors in the correct modes" in helios.map {
     h =>
-
+      setStatus(preflight)
+      h.disarmMotors.block.getClass should be(classOf[CommandFailure])
+      h.armMotors.block.getClass should be(classOf[CommandSuccess])
+      setStatus(flying)
+      h.armMotors.block.getClass should be(classOf[CommandFailure])
+      h.disarmMotors.block.getClass should be(classOf[CommandSuccess])
   }
 
   it should "allow landing" in helios.map {

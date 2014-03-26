@@ -2,6 +2,10 @@ package helios.core.actors
 
 import akka.actor._
 import akka.io.{IO, UdpConnected}
+import akka.actor.SupervisorStrategy._
+
+import language.postfixOps
+import concurrent.duration._
 
 import helios.core.actors.flightcontroller.{MockSerial, HeliosUART}
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
@@ -9,9 +13,9 @@ import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
+import helios.HeliosConfig
 
 import org.slf4j.LoggerFactory
-import helios.HeliosConfig
 import com.github.jodersky.flow.Serial
 
 object ClientReceptionist {
@@ -24,24 +28,31 @@ class ClientReceptionist extends Actor {
   import scala.collection.mutable
   import context.system
 
-  /** Contains a map from Handler to Client */
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 5,
+    withinTimeRange = 5 seconds,
+    loggingEnabled = true) {
+    case _: java.io.IOException => Restart
+    case _: NotImplementedError => Resume
+    case e =>
+      logger.warn("Unhandled supervisor event")
+      Restart
+  }
+  /** Contains a map from Handler to Client */
+
   lazy val uartManager: ActorRef = {
     HeliosConfig.serialdevice match {
+      case Some("MOCK") => context.actorOf(MockSerial.props)
       case Some(_) => IO(Serial)
-
-//      case Some(_) => context.actorOf(Props(new SerialManager))
-
       case None => context.actorOf(MockSerial.props)
     }
   }
 
   val uart = context.actorOf(HeliosUART.props(self, uartManager))
 
-  val groundControl =
-    context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
+  val groundControl = context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
 
   context watch groundControl
 
@@ -80,6 +91,7 @@ class ClientReceptionist extends Actor {
       sender ! hd
 
     case m@PublishMAVLink(ml) =>
+      //logger.debug(s"Publishing MAVLink: $ml")
       clients.keys foreach (_ ! m)
 
     case WriteMAVLink(m) =>

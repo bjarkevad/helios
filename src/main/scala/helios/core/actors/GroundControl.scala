@@ -69,7 +69,7 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
         case Success(m: MAVLinkMessage) =>
-          //logger.debug(s"received MAVLink: $m")
+          logger.debug(s"received MAVLink: $m")
           handler ! WriteMAVLink(m)
 
         case Failure(e: Throwable) =>
