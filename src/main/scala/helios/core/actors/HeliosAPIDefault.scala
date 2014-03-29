@@ -246,16 +246,24 @@ object HeliosAPIDefault {
   }
 
   def removeFlag(currentStatus: Option[SystemStatus], flags: Int*): Int = {
-    (getMode(currentStatus) /: flags)(_ - _)
+    if(hasFlags(currentStatus, flags: _*))
+      (getMode(currentStatus) /: flags)(_ - _)
+    else
+      getMode(currentStatus)
   }
 
   def hasFlags(currentStatus: Option[SystemStatus], flags: Int*): Boolean = {
     val mode = getMode(currentStatus)
-    flags.forall(flag => (flag & mode) > 0)
+    flags.forall(flag => (flag & mode) == flag)
   }
 
   def getMode(currentStatus: Option[SystemStatus]): Int = {
     currentStatus.map(_.mode).getOrElse(0)
+  }
+
+  def getMode2(currentStatus: Option[SystemStatus]): Int = {
+    (for (s <- currentStatus) yield s.mode)
+      .getOrElse(0)
   }
 
   def cannotMsg(thing: String, currentStatus: Option[SystemStatus]): String = {
