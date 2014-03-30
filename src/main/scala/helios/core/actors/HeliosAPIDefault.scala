@@ -30,7 +30,7 @@ with TypedActor.Receiver {
 
   //TODO: Move to client side
   var sysStatus: Option[SystemStatus] = None
-  var sysLocation: Option[SystemLocation] = None
+  var sysLocation: Option[SystemPosition] = None
   var sysAttitude: Option[AttitudeRad] = None
 
   override def preStart() = {
@@ -53,7 +53,7 @@ with TypedActor.Receiver {
     client ! status
   }
 
-  def updateSystemLocation(location: SystemLocation): Unit = {
+  def updateSystemPosition(location: SystemPosition): Unit = {
     sysLocation = Some(location)
     client ! location
   }
@@ -74,6 +74,12 @@ with TypedActor.Receiver {
           case IMAVLinkMessageID.MAVLINK_MSG_ID_ATTITUDE =>
             val att = ml.asInstanceOf[msg_attitude]
             updateSystemAttitude(AttitudeRad(att.roll, att.pitch, att.yaw))
+
+          case IMAVLinkMessageID.MAVLINK_MSG_ID_GLOBAL_POSITION_INT =>
+            val pos = ml.asInstanceOf[msg_global_position_int]
+            updateSystemPosition(
+              SystemPosition(pos.lat, pos.lon, pos.alt, pos.relative_alt, pos.vx, pos.vy, pos.vz)
+            )
 
           case _ =>
         }
@@ -128,9 +134,9 @@ with TypedActor.Receiver {
 
   override def rotateLeft(degrees: Degrees): Future[CommandResult] = ???
 
-  override def location: Future[Location] = ???
+  override def location: Future[Position] = ???
 
-  override def flyTo(location: Location): Future[CommandResult] = ???
+  override def flyTo(location: Position): Future[CommandResult] = ???
 
   override def flyBackwards(distance: Distance): Future[CommandResult] = ???
 
@@ -270,4 +276,3 @@ object HeliosAPIDefault {
     s"Cannot $thing in mode: ${getMode(currentStatus)}"
   }
 }
-

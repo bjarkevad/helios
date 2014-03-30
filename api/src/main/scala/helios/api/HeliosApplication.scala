@@ -59,8 +59,8 @@ with TypedActor.PostStop {
         }
         statusStream onNext m
 
-      case m: SystemLocation =>
-        locStream onNext m
+      case m: SystemPosition =>
+        posStream onNext m
 
       case m: AttitudeRad =>
         attStream onNext m
@@ -109,14 +109,14 @@ object Streams {
   lazy val statusStream: Subject[SystemStatus] = Subject()
 
   private[api]
-  lazy val locStream: Subject[SystemLocation] = Subject()
+  lazy val posStream: Subject[SystemPosition] = Subject()
 
   private[api]
   lazy val attStream: Subject[AttitudeRad] = Subject()
 
   implicit class StreamsImp(val helios: HeliosAPI) {
     lazy val systemStatusStream: Observable[SystemStatus] = statusStream
-    lazy val locationStream: Observable[SystemLocation] = locStream
+    lazy val positionStream: Observable[SystemPosition] = posStream
     lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
     lazy val attitudeDegStream: Observable[AttitudeDeg] = attStream map {
       a =>

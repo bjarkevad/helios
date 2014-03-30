@@ -28,6 +28,7 @@ class ClientReceptionist extends Actor {
   import scala.collection.mutable
   import context.system
 
+  /** Contains a map from Handler to Client */
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
@@ -40,7 +41,6 @@ class ClientReceptionist extends Actor {
       logger.warn("Unhandled supervisor event")
       Restart
   }
-  /** Contains a map from Handler to Client */
 
   lazy val uartManager: ActorRef = {
     HeliosConfig.serialdevice match {

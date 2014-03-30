@@ -44,12 +44,12 @@ class GroundControl(udpManager: ActorRef) extends Actor with Stash {
 
   def unbound(connection: Option[ActorRef] = None, handler: Option[ActorRef] = None): Receive = {
     case UdpConnected.Connected =>
-      val con = sender
+      val connection = sender
       handler match {
         case Some(h) =>
-          context become registered(con, h)
+          context become registered(connection, h)
         case None =>
-          context become unbound(Some(con), handler)
+          context become unbound(Some(connection), handler)
       }
 
     case UdpConnected.CommandFailed(cmd: UdpConnected.Connect) =>
