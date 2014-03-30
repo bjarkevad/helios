@@ -34,6 +34,10 @@ with ImplicitSender {
     hb
   }
 
+  lazy val address: InetSocketAddress = {
+    new InetSocketAddress("localhost", 14550)
+  }
+
   override def afterAll() = {
     system.shutdown()
   }
@@ -42,7 +46,7 @@ with ImplicitSender {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
-    val gc = system.actorOf(GroundControl.props(udpMan.ref))
+    val gc = system.actorOf(GroundControl.props(udpMan.ref, address))
 
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)
@@ -53,7 +57,7 @@ with ImplicitSender {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
-    val gc = system.actorOf(GroundControl.props(udpMan.ref))
+    val gc = system.actorOf(GroundControl.props(udpMan.ref, address))
 
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)
@@ -73,7 +77,7 @@ with ImplicitSender {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
-    val gc = system.actorOf(GroundControl.props(udpMan.ref))
+    val gc = system.actorOf(GroundControl.props(udpMan.ref, address))
 
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)

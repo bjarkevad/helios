@@ -1,32 +1,27 @@
 package helios.core.actors
 
 import akka.actor._
-import akka.io.{IO, UdpConnected}
 import akka.actor.SupervisorStrategy._
 
 import language.postfixOps
 import concurrent.duration._
 
-import helios.core.actors.flightcontroller.{MockSerial, HeliosUART}
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
-import helios.HeliosConfig
 
 import org.slf4j.LoggerFactory
-import com.github.jodersky.flow.Serial
 
 object ClientReceptionist {
-  def props: Props = Props(new ClientReceptionist)
+  def props(uartProps: Props, groundControlProps: Props): Props = Props(new ClientReceptionist(uartProps, groundControlProps))
 }
 
-class ClientReceptionist extends Actor {
+class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Actor {
 
   import CoreMessages._
   import scala.collection.mutable
-  import context.system
 
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
@@ -42,18 +37,11 @@ class ClientReceptionist extends Actor {
   }
   /** Contains a map from Handler to Client */
 
-  lazy val uartManager: ActorRef = {
-    HeliosConfig.serialdevice match {
-      case Some("MOCK") => context.actorOf(MockSerial.props)
-      case Some(_) => IO(Serial)
-      case None => context.actorOf(MockSerial.props)
-    }
-  }
 
-  val uart = context.actorOf(HeliosUART.props(self, uartManager))
+  val uart = context.actorOf(uartProps, "UART")
+  val groundControl = context.actorOf(groundControlProps, "GroundControl")
 
-  val groundControl = context.actorOf(GroundControl.props(IO(UdpConnected)), "GroundControl")
-
+  context watch uart //TODO: fix supervision strategy for this
   context watch groundControl
 
   override def preStart() = {
@@ -116,7 +104,7 @@ class ClientReceptionist extends Actor {
 
 object CoreMessages {
 
-  import SubscriptionTypes._
+//  import SubscriptionTypes._
 
   trait Request
 
@@ -134,19 +122,19 @@ object CoreMessages {
 
   case class NotRegistered(client: ActorRef) extends Response
 
-  case class Subscribe(subType: SubscriptionType) extends Request
-
-  case class Unsubscribe(subType: SubscriptionType) extends Request
+//  case class Subscribe(subType: SubscriptionType) extends Request
+//
+//  case class Unsubscribe(subType: SubscriptionType) extends Request
 
   case class NotAllowed() extends Response
 
 }
 
-//TODO: Remove or what?
-object SubscriptionTypes {
-
-  trait SubscriptionType
-
-  case class SystemStatus() extends SubscriptionType
-
-}
+////TODO: Remove or what?
+//object SubscriptionTypes {
+//
+//  trait SubscriptionType
+//
+//  case class SystemStatus() extends SubscriptionType
+//
+//}

@@ -7,18 +7,16 @@ import scala.util.{Failure, Success}
 import helios.core.actors.flightcontroller.FlightControllerMessages._
 import helios.mavlink.MAVLink.convertToMAVLink
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.HeliosConfig
 
-import com.github.jodersky.flow.{Parity, Serial, SerialSettings}
+import com.github.jodersky.flow.{Serial, SerialSettings}
 import org.slf4j.LoggerFactory
 import org.mavlink.messages.IMAVLinkMessageID._
 import org.mavlink.messages.{MAV_CMD, MAVLinkMessage}
 import org.mavlink.messages.common.msg_command_long
 import scala.collection.mutable
-
 object HeliosUART {
-  def props(subscriptionHandler: ActorRef, uartManager: ActorRef): Props = {
-    Props(new HeliosUART(subscriptionHandler, uartManager))
+  def props(uartManager: ActorRef, settings: SerialSettings): Props = {
+    Props(new HeliosUART(uartManager, settings))
   }
 
   lazy val privilegedMessages: Set[Int] = Set(
@@ -43,40 +41,27 @@ object HeliosUART {
     }
   }
 
+  implicit class subscriberImpls(val subs: Seq[ActorRef]) {
+    def !(msg: Any)(implicit sender: ActorRef) = subs.foreach(_ ! msg)
+  }
+
   case class SetPrimary(newPrimary: ActorRef)
 
   case class NotAllowed(msg: MAVLinkMessage)
 
 }
 
-class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends Actor {
+class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
 
   import HeliosUART._
-
-  //implicit val system = context.system
 
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
   var messageBuffer: ByteString = ByteString()
   var nextLen: Int = 0
-  //  lazy val uartManager: ActorRef = {
-  //    HeliosConfig.serialdevice match {
-  //      case Some(_) => IO(Tcp)
-  //      case None => context.actorOf(MockSerial.props)
-  //    }
-  //  }
-  lazy val settings: SerialSettings = {
-    SerialSettings(
-      HeliosConfig.serialdevice.getOrElse("/dev/ttyUSB0"),
-      HeliosConfig.serialBaudrate.getOrElse(115200),
-      8,
-      false,
-      Parity.None
-    )
-  }
 
   override def preStart() = {
-    logger.debug(s"Serial settings: $settings")
+    logger.debug(s"Started with serial settings: $settings and parent ${context.parent}")
     uartManager ! Serial.Open(settings)
   }
 
@@ -89,13 +74,14 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
       throw reason //LET IT CRASH!
 
     case Serial.Opened(set, operator) =>
-      logger.debug(s"Serial port opened with settings: $set")
-      context become opened(operator, context.parent)
+      logger.debug(s"Serial port opened with settings: $set and parent: ${context.parent}")
+      context become opened(operator, context.parent, Seq(context.parent))
       context watch operator
       operator ! Serial.Register(self)
   }
 
-  def opened(operator: ActorRef, primary: ActorRef): Receive = {
+  //import HeliosUART.subscriberImpls
+  def opened(operator: ActorRef, primary: ActorRef, subscribers: Seq[ActorRef]): Receive = {
     case Serial.Received(data) =>
       logger.debug(s"Received: $data")
       var ok = false
@@ -115,7 +101,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
         println(s"message done $messageBuffer")
 
         convertToMAVLink(messageBuffer) match {
-          case Success(m) => subscriptionHandler ! PublishMAVLink(m)
+          case Success(m) => subscribers ! PublishMAVLink(m)
           case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
           case e@_ => logger.warn(s"What the heck? $e")
         }
@@ -143,7 +129,7 @@ class HeliosUART(subscriptionHandler: ActorRef, uartManager: ActorRef) extends A
     case SetPrimary(newPrimary) =>
       logger.debug(s"Set new primary: $newPrimary")
       logger.debug(s"Sender was: $sender")
-      context become opened(operator, newPrimary)
+      context become opened(operator, newPrimary, subscribers)
 
     case Terminated(`operator`) =>
       logger.warn("Serialport operator closed unexpectedly")

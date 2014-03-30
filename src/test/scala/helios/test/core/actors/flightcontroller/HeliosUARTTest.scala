@@ -4,7 +4,7 @@ import org.scalatest._
 
 import com.github.jodersky.flow._
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
-import akka.actor.{ActorRef, PoisonPill, ActorSystem}
+import akka.actor._
 
 import scala.language.postfixOps
 import scala.concurrent.duration._
@@ -19,6 +19,14 @@ import com.github.jodersky.flow.Serial.Received
 import com.github.jodersky.flow.SerialSettings
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.flightcontroller.HeliosUART.{SetPrimary, NotAllowed}
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import com.github.jodersky.flow.SerialSettings
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import helios.core.actors.flightcontroller.HeliosUART.NotAllowed
+import com.github.jodersky.flow.Serial.Received
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
+import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 
 class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
@@ -58,13 +66,15 @@ with ImplicitSender {
   lazy val recep = TestProbe()
 
   def initUART: ActorRef = {
-    val hu = system.actorOf(HeliosUART.props(recep.ref, uartManager.ref))
+    val hu = system.actorOf(HeliosUART.props(uartManager.ref, settings))
     uartManager.expectMsg(Serial.Open(settings))
     uartManager.send(hu, Serial.Opened(settings, operator.ref))
     operator.expectMsg(Serial.Register(hu))
 
     hu
   }
+
+
 
   "HeliosUART" should "Open and register" in {
     //internal.InternalSerial.debug(true)
@@ -84,12 +94,27 @@ with ImplicitSender {
   }
 
   it should "read data from the UART" in {
-    val sp = initUART
+    val uartProxy = system.actorOf(Props(new Actor {
+      val child = context.actorOf(HeliosUART.props(uartManager.ref, settings), "HeliosUARTwParent")
+      def receive = {
+        case x if sender == child =>
+          println(s"Forwarding to self $x")
+          testActor forward x
+        case x =>
+          println("Forwarding to child")
+          child forward x
+      }
+    }))
+
+    uartManager.expectMsg(Serial.Open(settings))
+    uartManager.send(uartProxy, Serial.Opened(settings, operator.ref))
+    operator.expectMsgClass(classOf[Serial.Register])
 
     val dataBs = ByteString(heartbeat.encode)
 
-    operator.send(sp, Received(dataBs))
-    recep.expectMsgClass(classOf[PublishMAVLink])
+    operator.send(uartProxy, Received(dataBs))
+
+    expectMsgClass(classOf[PublishMAVLink])
   }
 
   it should "not allow privileged messages to be sent from non-privileged senders" in {

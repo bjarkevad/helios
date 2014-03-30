@@ -43,7 +43,7 @@ with BeforeAndAfter {
   }
 
   def heliosUart: ActorRef = {
-    val s = system.actorOf(HeliosUART.props(self, IO(Serial)))
+    val s = system.actorOf(HeliosUART.props(IO(Serial), settings))
     Thread.sleep(100)
     s
   }

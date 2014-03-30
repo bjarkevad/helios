@@ -22,6 +22,12 @@ with FlatSpecLike
 with Matchers
 with BeforeAndAfterEach {
 
+  /*
++–––––––––––+    +–––––––––+      +––––––––+
+| heliosApp |    | client  |      | helios |
+|           +––––+ (probe) +––––––+        |
++–––––––––––+    +–––––––––+      +––––––––+
+*/
   val probe: TestProbe = TestProbe()
   val client: TestProbe = TestProbe()
   val uart: TestProbe = TestProbe()
