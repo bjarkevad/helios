@@ -6,9 +6,11 @@ import rx.lang.scala.Observable
 object HeliosAPI {
 
 
-  trait Location
+  trait Position
 
-  case class SystemLocation(location: Location)
+  case class SystemPosition(lat: Long, lon: Long, alt: Long, relAlt: Long,
+                            vx: Int, vy: Int, vz: Int,
+                            hdg: Int = Int.MaxValue) extends Position
 
   trait Distance
 
@@ -115,9 +117,9 @@ trait HeliosAPI {
 
   def flyBackwards(distance: Distance): Future[CommandResult]
 
-  def flyTo(location: Location): Future[CommandResult]
+  def flyTo(location: Position): Future[CommandResult]
 
-  def location: Future[Location]
+  def location: Future[Position]
 
   def rotateLeft(degrees: Degrees): Future[CommandResult]
 

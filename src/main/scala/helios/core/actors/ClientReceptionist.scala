@@ -23,6 +23,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
   import CoreMessages._
   import scala.collection.mutable
 
+  /** Contains a map from Handler to Client */
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
@@ -35,7 +36,6 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
       logger.warn("Unhandled supervisor event")
       Restart
   }
-  /** Contains a map from Handler to Client */
 
 
   val uart = context.actorOf(uartProps, "UART")
