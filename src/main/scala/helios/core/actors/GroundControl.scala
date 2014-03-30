@@ -14,26 +14,22 @@ import org.slf4j.LoggerFactory
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import helios.core.actors.CoreMessages._
-import helios.HeliosConfig
 
 object GroundControl {
 
-  def props(udpManager: ActorRef): Props = Props(new GroundControl(udpManager))
+  def props(udpManager: ActorRef, address: InetSocketAddress): Props = Props(new GroundControl(udpManager, address))
 }
 
-class GroundControl(udpManager: ActorRef) extends Actor with Stash {
+class GroundControl(udpManager: ActorRef, address: InetSocketAddress) extends Actor with Stash {
 
   import language.postfixOps
 
   lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
 
-  lazy val address: InetSocketAddress = {
-    HeliosConfig.groundcontrolAddress
-    .getOrElse(new InetSocketAddress("localhost", 14550))
-  }
 
   override def preStart() = {
     logger.debug(s"Address: ${address.getHostName}: ${address.getPort}")
+    logger.debug(s"Parent: ${context.parent}")
     udpManager ! UdpConnected.Connect(self, address)
     context.parent ! RegisterClient(self)
   }
