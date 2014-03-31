@@ -4,8 +4,10 @@ import helios.api.HeliosApplication
 import helios.api.Streams._
 import helios.api.Handlers._
 import helios.api.HeliosAPI.{AttitudeRad, SystemPosition}
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object Waypoints extends App {
 
@@ -47,13 +49,15 @@ object Waypoints extends App {
 
     val pitch = distance * 0.01f
 
-    if (Math.abs(pitch) >= 45) 45
+    if (Math.abs(pitch) >= 10) 10
     else if (Math.abs(pitch) <= 5) 0
     else pitch
   }
 
   def calcAttitude(position: SystemPosition)(implicit setpoint: SystemPosition): Future[AttitudeRad] = {
-    calcPitch(position, setpoint).zip(calcYaw(position, setpoint)).map {
+    calcPitch(position, setpoint)
+      .zip(calcYaw(position, setpoint))
+      .map {
       case (p, y) => AttitudeRad(0, p, y)
     }
   }
@@ -62,16 +66,12 @@ object Waypoints extends App {
 
   val helios = HeliosApplication().Helios
 
+  helios.takeControl()
+  Await.result(helios.takeOff, 10 seconds)
+
   val flyTask = helios.positionStream
     .map(calcAttitude)
     .subscribe(_.map(helios.setAttitude(_, 0.5f)))
 
   helios.setEmergencyHandler(() => flyTask.unsubscribe())
 }
-
-//val loc = location
-//val setpointSlope = setpoint - loc
-//fly(forward)
-//val newLoc = location
-//val slope = newLoc - loc
-//val newYaw = angleBetween(setpointSlope, slope)
