@@ -2,18 +2,22 @@ package helios.core.actors.flightcontroller
 
 import akka.actor._
 import akka.util.ByteString
-import scala.util.{Failure, Success}
+import scala.util.{Try, Failure, Success}
 
 import helios.core.actors.flightcontroller.FlightControllerMessages._
-import helios.mavlink.MAVLink.convertToMAVLink
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
-import com.github.jodersky.flow.{Serial, SerialSettings}
+import com.github.jodersky.flow.{NoSuchPortException, Serial, SerialSettings}
 import org.slf4j.LoggerFactory
 import org.mavlink.messages.IMAVLinkMessageID._
 import org.mavlink.messages.{MAV_CMD, MAVLinkMessage}
 import org.mavlink.messages.common.msg_command_long
-import scala.collection.mutable
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.concurrent.ExecutionContext.Implicits.global
+import org.mavlink.MAVLinkReader
+
 object HeliosUART {
   def props(uartManager: ActorRef, settings: SerialSettings): Props = {
     Props(new HeliosUART(uartManager, settings))
@@ -41,24 +45,44 @@ object HeliosUART {
     }
   }
 
-  implicit class subscriberImpls(val subs: Seq[ActorRef]) {
-    def !(msg: Any)(implicit sender: ActorRef) = subs.foreach(_ ! msg)
+  implicit class subscriberImpls(val subs: Set[ActorRef]) {
+    def !(msg: Any)(implicit sender: ActorRef) = {
+      subs.foreach(_ ! msg)
+    }
   }
 
   case class SetPrimary(newPrimary: ActorRef)
 
   case class NotAllowed(msg: MAVLinkMessage)
 
+  trait subscriptionEvent
+
+  case class AddSubscriber(actor: ActorRef) extends subscriptionEvent
+
+  case class RemoveSubscriber(actor: ActorRef) extends subscriptionEvent
+
+  lazy val testCmd = {
+    val msg = new msg_command_long(20, 0)
+    msg.command = MAV_CMD.MAV_CMD_NAV_TAKEOFF
+    msg.param1 = 0 //pitch
+    msg.param4 = 0 //yaw
+    msg.param5 = 0 //latitude
+    msg.param6 = 0 //longtitude
+    msg.param7 = 2 //altitude
+
+    msg
+  }
+
 }
 
-class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
+class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor
+with Stash {
 
   import HeliosUART._
 
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
 
-  var messageBuffer: ByteString = ByteString()
-  var nextLen: Int = 0
+  lazy val mlReader = new MAVLinkReader(0xFE.toByte)
 
   override def preStart() = {
     logger.debug(s"Started with serial settings: $settings and parent ${context.parent}")
@@ -68,47 +92,56 @@ class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor 
   override def postStop() = {
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = default
+
+
+  def default: Receive = {
     case Serial.CommandFailed(cmd, reason) =>
       logger.warn(s"Failed to open serial port: $reason")
-      throw reason //LET IT CRASH!
+      reason match {
+        case _: NoSuchPortException => throw reason
+        case _ =>
+          context.system.scheduler.scheduleOnce(100 millis, uartManager, cmd) //retry after 100 ms
+      }
 
     case Serial.Opened(set, operator) =>
       logger.debug(s"Serial port opened with settings: $set and parent: ${context.parent}")
-      context become opened(operator, context.parent, Seq(context.parent))
+      context become opened(operator, context.parent, Set.empty)
       context watch operator
       operator ! Serial.Register(self)
+      unstashAll()
+      context.system.scheduler.schedule(1 second, 1 second, operator, Serial.Write(ByteString(testCmd.encode())))
+
+    case _: subscriptionEvent =>
+      stash()
   }
 
   //import HeliosUART.subscriberImpls
-  def opened(operator: ActorRef, primary: ActorRef, subscribers: Seq[ActorRef]): Receive = {
+  def opened(operator: ActorRef, primary: ActorRef, subscribers: Set[ActorRef]): Receive = {
     case Serial.Received(data) =>
-      logger.debug(s"Received: $data")
-      var ok = false
-      if(data(0) == -2 && messageBuffer.isEmpty) {
-        nextLen = data(1) + 8
-        println("message started")
-        messageBuffer = data
-        ok = true
-      }
-      else if (messageBuffer.length < nextLen) {
-        println("more of a message")
-        messageBuffer = messageBuffer ++ data
-        ok = true
+      //     logger.debug(s"Received: $data")
+      Try(mlReader.getNextMessage(data.toArray, data.length)) match {
+        case Success(msg: MAVLinkMessage) =>
+          //logger.debug("Got MAVLink message!")
+          subscribers ! PublishMAVLink(msg)
+
+          var moreMessages: Boolean = true
+          while (moreMessages) {
+            Try(mlReader.getNextMessage) match {
+              case Success(msg: MAVLinkMessage) =>
+                //logger.debug("Sent extra message")
+                subscribers ! PublishMAVLink(msg)
+              case _ =>
+                moreMessages = false
+            }
+          }
+
+
+        case _ =>
+          //logger.debug("Message not yet finished..")
       }
 
-      if(messageBuffer.length >= nextLen) {
-        println(s"message done $messageBuffer")
-
-        convertToMAVLink(messageBuffer) match {
-          case Success(m) => subscribers ! PublishMAVLink(m)
-          case Failure(e: Throwable) => logger.warn(s"Received something unknown over UART: $e")
-          case e@_ => logger.warn(s"What the heck? $e")
-        }
-
-        messageBuffer = ByteString()
-        ok = true
-      }
+      Thread.sleep(2)
 
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)
@@ -123,7 +156,7 @@ class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor 
       sender ! NotAllowed(msg)
 
     case WriteMAVLink(msg) =>
-      logger.debug(s"Writing MAVLink to UART: $msg")
+      logger.debug(s"Writing MAVLink to UART: $msg from $sender")
       operator ! Serial.Write(ByteString(msg.encode()))
 
     case SetPrimary(newPrimary) =>
@@ -132,12 +165,18 @@ class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor 
       context become opened(operator, newPrimary, subscribers)
 
     case Terminated(`operator`) =>
-      logger.warn("Serialport operator closed unexpectedly")
-      context stop self
+      //logger.warn("Serialport operator closed unexpectedly")
+      throw new java.io.IOException("Serialport closed unexpectedly")
 
     case Serial.Closed =>
       logger.debug("Closed serialport")
       context stop self
+
+    case AddSubscriber(actor) =>
+      context become opened(operator, primary, subscribers + actor)
+
+    case RemoveSubscriber(actor) =>
+      context become opened(operator, primary, subscribers - actor)
   }
 }
 

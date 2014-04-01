@@ -13,6 +13,8 @@ import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosApplicationDefault.RegisterAPIClient
 
 import org.slf4j.LoggerFactory
+import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
+import helios.core.actors.flightcontroller.HeliosUART
 
 object ClientReceptionist {
   def props(uartProps: Props, groundControlProps: Props): Props = Props(new ClientReceptionist(uartProps, groundControlProps))
@@ -27,10 +29,12 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
   val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
-  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 5,
-    withinTimeRange = 5 seconds,
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 100,
+    withinTimeRange = 1 seconds,
     loggingEnabled = true) {
     case _: java.io.IOException => Restart
+    case _: PortInUseException => Restart
+    case _: NoSuchPortException => Stop
     case _: NotImplementedError => Resume
     case e =>
       logger.warn("Unhandled supervisor event")
@@ -55,10 +59,10 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
       val ch = context.actorOf(ClientHandler.props(c, uart))
 
       if (clients.isEmpty)
-        uart ! SetPrimary(c)
+        uart ! SetPrimary(ch)
 
+      uart ! HeliosUART.AddSubscriber(ch)
       clients put(ch, c)
-
       c ! Registered(ch)
 
     case UnregisterClient(c) if clients contains c =>
@@ -71,8 +75,12 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
           .typedActorOf(TypedProps(
           classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c, uart, 20)))
 
+      val ch = TypedActor(context.system).getActorRefFor(hd)
+
       if (clients.isEmpty)
-        uart ! SetPrimary(c)
+        uart ! SetPrimary(ch)
+
+      uart ! HeliosUART.AddSubscriber(ch)
 
       clients put(TypedActor(context.system).getActorRefFor(hd), c)
 

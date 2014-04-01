@@ -5,11 +5,10 @@ import helios.util.nio.FileOps._
 import helios.util.nio.AsyncFileChannel.AsyncFileChannelOps
 import helios.util.gpio.GPIOPin.GPIOPin
 
-import java.nio.file.StandardOpenOption
 
-import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
-import scala.io.Source
 
 object GPIOPin extends Enumeration {
   type GPIOPin = Value
@@ -25,10 +24,10 @@ object GPIO {
 
   def toSwPin(gpioPin: GPIOPin) = {
     gpioPin match {
-      case P8_14 => "10"
-      case P8_15 => "15"
-      case P8_16 => "14"
-      case P8_17 => "11"
+      case P8_14 => "26"
+      case P8_15 => "47"
+      case P8_16 => "46"
+      case P8_17 => "27"
       case _ => ""
     }
   }
@@ -90,9 +89,40 @@ object GPIO {
     readLines(getValueDir(gpio)) map (_ mkString " ")
   }
 
-//  private def SetEdge(gpio: GPIO, edge: String): Int = ???
-//
-//  private def Open(gpio: GPIO): Boolean = ???
-//
-//  private def Close(gpio: GPIO): Boolean = ???
+  //  private def SetEdge(gpio: GPIO, edge: String): Int = ???
+  //
+  //  private def Open(gpio: GPIO): Boolean = ???
+  //
+  //  private def Close(gpio: GPIO): Boolean = ???
+}
+
+object HeliosGPIO {
+
+  import GPIO._
+
+  val resetPin = export(GPIOPin.P8_17)
+  val bootloaderPin = export(GPIOPin.P8_16)
+
+  def initialize = {
+    bootloaderPin.map {
+      g =>
+        setDirection(g, input = false)
+    }
+
+    resetPin.map {
+      g =>
+        setDirection(g, input = false)
+        setValue(g, 1)
+    }
+  }
+
+  def reset = Future {
+    resetPin.map {
+      g =>
+        setValue(g, 0)
+        Thread.sleep(10)
+        setValue(g, 1)
+    }
+
+  }
 }

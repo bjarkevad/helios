@@ -77,7 +77,7 @@ object TestApp extends App {
       print('*')
     }
     catch {
-      case _ => print('-')
+      case _: Throwable => print('-')
     }
   }
 }

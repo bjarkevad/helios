@@ -5,6 +5,7 @@ import akka.io.UdpConnected
 import akka.util.ByteString
 
 import org.mavlink.messages._
+import org.mavlink.messages.common._
 
 import helios.mavlink.MAVLink
 import MAVLink._

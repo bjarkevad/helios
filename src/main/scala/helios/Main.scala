@@ -6,6 +6,8 @@ import helios.core.actors.flightcontroller.{HeliosUART, MockSerial}
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import java.net.InetSocketAddress
+import helios.util.gpio
+import helios.util.gpio.HeliosGPIO
 
 object Main extends App {
   implicit val system = ActorSystem("Main")
@@ -44,5 +46,7 @@ object Main extends App {
   }
 
   system.actorOf(ClientReceptionist.props(uartProps, groundControlProps), "receptionist")
+
+//  HeliosGPIO.initialize
 }
 
