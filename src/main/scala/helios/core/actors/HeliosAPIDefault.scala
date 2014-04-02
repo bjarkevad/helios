@@ -14,8 +14,11 @@ import rx.lang.scala.Observable
 import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 import helios.core.actors.flightcontroller.HeliosUART
 import java.lang.System.currentTimeMillis
+import com.github.jodersky.flow.Serial
+import akka.util.ByteString
+import helios.core.actors.flightcontroller.MuxUART.WriteData
 
-class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val uart: ActorRef, val systemID: Int) extends HeliosAPI
+class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val uart: ActorRef, val muxUart: ActorRef, val systemID: Int) extends HeliosAPI
 with TypedActor.PreStart
 with TypedActor.PostStop
 with TypedActor.Receiver {
@@ -84,6 +87,9 @@ with TypedActor.Receiver {
           case _ =>
         }
 
+      case Serial.Received(data) =>
+        client ! UartData(data)
+
       case Terminated(`client`) =>
         logger.warn("Client was terminated, killing self")
         context.self ! PoisonPill
@@ -100,6 +106,8 @@ with TypedActor.Receiver {
   override def ping(sent_ms: Long): Future[Long] = {
     Future(currentTimeMillis() - sent_ms)
   }
+
+  override def writeToUart(data: ByteString): Unit = muxUart ! WriteData(data)
 
   override def newMission(mission: Mission): Unit = ???
 

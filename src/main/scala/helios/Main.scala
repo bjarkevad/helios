@@ -2,12 +2,10 @@ package helios
 
 import akka.actor.{ActorRef, Props, ActorSystem}
 import helios.core.actors.{GroundControl, ClientReceptionist}
-import helios.core.actors.flightcontroller.{HeliosUART, MockSerial}
+import helios.core.actors.flightcontroller.{MuxUART, HeliosUART, MockSerial}
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import java.net.InetSocketAddress
-import helios.util.gpio
-import helios.util.gpio.HeliosGPIO
 
 object Main extends App {
   implicit val system = ActorSystem("Main")
@@ -45,7 +43,24 @@ object Main extends App {
     HeliosUART.props(uartManager, settings)
   }
 
-  system.actorOf(ClientReceptionist.props(uartProps, groundControlProps), "receptionist")
+  lazy val muxUartProps: Props = {
+    lazy val uartManager: ActorRef = IO(Serial)
+
+    lazy val settings: SerialSettings = {
+      SerialSettings(
+        HeliosConfig.muxSerialDevice.getOrElse("/dev/ttyO1"),
+        HeliosConfig.muxSerialBaudrate.getOrElse(115200),
+        8,
+        twoStopBits = false,
+        Parity.None
+      )
+    }
+
+    MuxUART.props(uartManager, settings)
+  }
+
+  system.actorOf(
+    ClientReceptionist.props(uartProps, groundControlProps, muxUartProps), "receptionist")
 
 //  HeliosGPIO.initialize
 }

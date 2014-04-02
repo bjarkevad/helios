@@ -2,6 +2,7 @@ package helios.api
 
 import scala.concurrent.Future
 import rx.lang.scala.Observable
+import akka.util.ByteString
 
 object HeliosAPI {
 
@@ -66,6 +67,8 @@ trait HeliosAPI {
 
   //PUBLIC
   def terminate(): Unit
+
+  def writeToUart(data: ByteString): Unit
 
   def getFlightMode: Future[FlightMode] //System flightmode
 

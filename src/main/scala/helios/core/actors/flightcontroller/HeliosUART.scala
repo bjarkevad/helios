@@ -110,7 +110,6 @@ with Stash {
       context watch operator
       operator ! Serial.Register(self)
       unstashAll()
-      context.system.scheduler.schedule(1 second, 1 second, operator, Serial.Write(ByteString(testCmd.encode())))
 
     case _: subscriptionEvent =>
       stash()

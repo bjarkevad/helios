@@ -7,7 +7,8 @@ import rx.lang.scala.Subject
 import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
-import helios.api.HeliosApplicationDefault.RegisterAPIClient
+import helios.api.HeliosApplicationDefault.{UartData, RegisterAPIClient}
+import akka.util.ByteString
 
 object HeliosApplicationDefault {
 
@@ -15,6 +16,7 @@ object HeliosApplicationDefault {
 
   case class UnregisterAPIClient(client: HeliosAPI)
 
+  case class UartData(data: ByteString)
 }
 
 class HeliosApplicationDefault(clientReceptionist: ActorRef) extends HeliosApplication
@@ -65,6 +67,9 @@ with TypedActor.PostStop {
       case m: AttitudeRad =>
         attStream onNext m
 
+      case UartData(data) =>
+        uStream onNext data
+
       case _ =>
     }
   }
@@ -114,6 +119,9 @@ object Streams {
   private[api]
   lazy val attStream: Subject[AttitudeRad] = Subject()
 
+  private [api]
+  lazy val uStream: Subject[ByteString] = Subject()
+
   implicit class StreamsImp(val helios: HeliosAPI) {
     lazy val systemStatusStream: Observable[SystemStatus] = statusStream
     lazy val positionStream: Observable[SystemPosition] = posStream
@@ -126,6 +134,8 @@ object Streams {
           Math.toDegrees(a.yaw).toFloat
         )
     }
+
+    lazy val uartStream: Observable[ByteString] = uStream
   }
 }
 

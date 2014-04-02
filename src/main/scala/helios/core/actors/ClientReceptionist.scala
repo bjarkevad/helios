@@ -17,10 +17,11 @@ import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
 import helios.core.actors.flightcontroller.HeliosUART
 
 object ClientReceptionist {
-  def props(uartProps: Props, groundControlProps: Props): Props = Props(new ClientReceptionist(uartProps, groundControlProps))
+  def props(uartProps: Props, groundControlProps: Props, muxUartProps: Props): Props =
+    Props(new ClientReceptionist(uartProps, groundControlProps, muxUartProps))
 }
 
-class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Actor {
+class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartProps: Props) extends Actor {
 
   import CoreMessages._
   import scala.collection.mutable
@@ -43,6 +44,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
 
 
   val uart = context.actorOf(uartProps, "UART")
+  val muxUart = context.actorOf(muxUartProps, "MuxUART")
   val groundControl = context.actorOf(groundControlProps, "GroundControl")
 
   context watch uart //TODO: fix supervision strategy for this
@@ -62,6 +64,10 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
         uart ! SetPrimary(ch)
 
       uart ! HeliosUART.AddSubscriber(ch)
+
+      if(c != groundControl)
+        muxUart ! HeliosUART.AddSubscriber(ch)
+
       clients put(ch, c)
       c ! Registered(ch)
 
@@ -73,7 +79,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
       val hd: HeliosAPI =
         TypedActor(context.system)
           .typedActorOf(TypedProps(
-          classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c, uart, 20)))
+          classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c, uart, muxUart, 20)))
 
       val ch = TypedActor(context.system).getActorRefFor(hd)
 
@@ -81,6 +87,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
         uart ! SetPrimary(ch)
 
       uart ! HeliosUART.AddSubscriber(ch)
+      muxUart ! HeliosUART.AddSubscriber(ch)
 
       clients put(TypedActor(context.system).getActorRefFor(hd), c)
 
@@ -101,6 +108,8 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props) extends Ac
     case Terminated(a) if clients contains a =>
       clients remove a
       clients(a) ! Unregistered()
+      uart ! HeliosUART.RemoveSubscriber(a)
+      muxUart ! HeliosUART.RemoveSubscriber(a)
 
     case Terminated(`groundControl`) =>
       context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)

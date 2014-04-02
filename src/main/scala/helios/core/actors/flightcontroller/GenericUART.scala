@@ -1,12 +1,12 @@
 package helios.core.actors.flightcontroller
 
-import akka.actor.Actor
+import akka.actor.{ActorRef, Actor}
 
 object GenericUART {
 
 }
 
-class GenericUART(uartManager) extends Actor {
+class GenericUART(uartManager: ActorRef) extends Actor {
 
   override def receive: Receive = {
     case _ =>

@@ -25,6 +25,13 @@ object HeliosConfig {
     c => Try(c.getInt("helios.serial.baudrate")).toOption
   }
 
+  lazy val muxSerialDevice: Option[String] = config.flatMap {
+    c => Try(c.getString("helios.muxserial.device")).toOption
+  }
+  lazy val muxSerialBaudrate: Option[Int] = config.flatMap {
+    c => Try(c.getInt("helios.muxserial.baudrate")).toOption
+  }
+
   lazy val groundcontrolAddress: Option[InetSocketAddress] = {
     val host: Option[String] = config.flatMap {
       c =>

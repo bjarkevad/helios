@@ -9,6 +9,7 @@ import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.lang.System.currentTimeMillis
 import scala.concurrent.Await
+import akka.util.ByteString
 
 object TestApp extends App {
 
@@ -30,7 +31,20 @@ object TestApp extends App {
   val HeliosApp = HeliosApplication()
   val Helios = HeliosApp.Helios
 
-  Helios.takeControl()
+  Helios.uartStream.subscribe(println(_))
+
+  val runner = new run
+  HeliosApp.scheduler.schedule(0 seconds, 500 millis, runner)
+
+  class run extends Runnable {
+    var i = 0
+    override def run(): Unit = {
+      Helios.writeToUart(ByteString(i))
+      i += 1
+    }
+  }
+
+//  Helios.takeControl()
 //  Helios.calibrateSensors map println
 //  Helios.armMotors map println
 
@@ -71,13 +85,13 @@ object TestApp extends App {
 //  val r = new attRun
 //  //HeliosApp.scheduler.schedule(0 millis, 1 seconds, r)
 //  HeliosApp.scheduler.schedule(0 millis, 1 nanos, r)
-  while(true) {
-    try {
-      Await.result(Helios.setAttitude(AttitudeDeg(10, 15, 20), 0.5f), 10 millis)
-      print('*')
-    }
-    catch {
-      case _: Throwable => print('-')
-    }
-  }
+//  while(true) {
+//    try {
+//      Await.result(Helios.setAttitude(AttitudeDeg(10, 15, 20), 0.5f), 10 millis)
+//      print('*')
+//    }
+//    catch {
+//      case _: Throwable => print('-')
+//    }
+//  }
 }

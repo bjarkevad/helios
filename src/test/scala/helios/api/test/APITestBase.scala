@@ -41,7 +41,7 @@ with BeforeAndAfterEach {
 
     probe.expectMsgClass(classOf[RegisterAPIClient])
     val heliosapi: HeliosAPI = TypedActor(system).typedActorOf(TypedProps(
-      classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, client.ref, uart.ref, 20)))
+      classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, client.ref, uart.ref, ActorRef.noSender, 20)))
 
     probe.send(probe.sender, heliosapi)
     res.block
