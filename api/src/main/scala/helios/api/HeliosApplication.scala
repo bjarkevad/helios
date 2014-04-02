@@ -9,6 +9,7 @@ import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
 import helios.api.HeliosApplicationDefault.{UartData, RegisterAPIClient}
 import akka.util.ByteString
+import scala.util.{Success, Failure, Try}
 
 object HeliosApplicationDefault {
 
@@ -30,11 +31,22 @@ with TypedActor.PostStop {
     import scala.concurrent.duration._
     import scala.language.postfixOps
 
-    //RegisterAPIClient returns a typed actor
-    Await.result(
-      ask(clientReceptionist, RegisterAPIClient(TypedActor.context.self))(10 seconds).mapTo[HeliosAPI],
-      11 seconds
-    )
+    def loop: HeliosAPI = {
+      Try(Await.result(
+        ask(clientReceptionist, RegisterAPIClient(TypedActor.context.self))(3 seconds).mapTo[HeliosAPI],
+        4 seconds
+      ))
+      match {
+        case Success(v: HeliosAPI) =>
+          println(s"connected to core $v")
+          v
+        case Failure(e: Throwable) =>
+          println(s"failed to connect to core: $e, retrying")
+          loop
+      }
+    }
+
+    loop
   }
 
   override def preStart() = {

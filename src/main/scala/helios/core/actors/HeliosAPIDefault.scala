@@ -209,6 +209,10 @@ with TypedActor.Receiver {
 
   override def takeControl(): Unit = {
     uart ! SetPrimary(context.self)
+    val msg = new msg_change_operator_control(systemID, 0)
+    msg.control_request = 0
+
+    uart ! WriteMAVLink(msg)
   }
 
   override def disarmMotors: Future[CommandResult] = Future {
