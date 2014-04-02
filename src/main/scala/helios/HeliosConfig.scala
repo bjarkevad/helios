@@ -40,7 +40,7 @@ object HeliosConfig {
           .toOption
     }
 
-    val port: Option[Int] = config.flatMap {
+   val port: Option[Int] = config.flatMap {
       c =>
         Try(c.getInt("helios.groundcontrol.port"))
           //.orElse(Try(14550))

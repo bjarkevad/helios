@@ -46,10 +46,7 @@ object HeliosUART {
   }
 
   implicit class subscriberImpls(val subs: Set[ActorRef]) {
-    def !(msg: Any)(implicit sender: ActorRef) = {
-      println(s"sending to ${subs.size} subscribers")
-      subs.foreach(_ ! msg)
-    }
+    def !(msg: Any)(implicit sender: ActorRef) = subs.foreach(_ ! msg)
   }
 
   case class SetPrimary(newPrimary: ActorRef)
