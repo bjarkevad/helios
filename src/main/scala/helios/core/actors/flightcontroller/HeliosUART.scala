@@ -164,7 +164,7 @@ with Stash {
       context become opened(operator, newPrimary, subscribers)
 
     case Terminated(`operator`) =>
-      //logger.warn("Serialport operator closed unexpectedly")
+      context stop self
       throw new java.io.IOException("Serialport closed unexpectedly")
 
     case Serial.Closed =>

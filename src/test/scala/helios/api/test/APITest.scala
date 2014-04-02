@@ -17,7 +17,7 @@ class APITest extends APITestBase {
       (res >= 0) should be(true)
   }
 
-  it should "ONLY allow calibrating sensors when not flying" in helios.map {
+  ignore should "ONLY allow calibrating sensors when not flying" in helios.map {
     h =>
       setStatus(preflight)
       h.calibrateSensors map (_ should be(CommandSuccess()))
@@ -27,7 +27,7 @@ class APITest extends APITestBase {
       h.calibrateSensors.block.getClass should be(classOf[CommandFailure])
   }
 
-  it should "call the critical handler when system enters critical mode" in helios.map {
+  ignore should "call the critical handler when system enters critical mode" in helios.map {
     h =>
       h.setCriticalHandler(() => probe.send(probe.ref, "CRITICAL"))
       setStatus(critical)

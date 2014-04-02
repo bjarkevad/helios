@@ -18,7 +18,13 @@ import helios.core.actors.flightcontroller.FlightControllerMessages.{WriteMAVLin
 import com.github.jodersky.flow.Serial.Received
 import com.github.jodersky.flow.SerialSettings
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.HeliosUART.{SetPrimary, NotAllowed}
+import helios.core.actors.flightcontroller.HeliosUART._
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import com.github.jodersky.flow.SerialSettings
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import com.github.jodersky.flow.Serial.Received
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import com.github.jodersky.flow.SerialSettings
@@ -109,6 +115,8 @@ with ImplicitSender {
     uartManager.expectMsg(Serial.Open(settings))
     uartManager.send(uartProxy, Serial.Opened(settings, operator.ref))
     operator.expectMsgClass(classOf[Serial.Register])
+
+    operator.send(uartProxy, AddSubscriber(self))
 
     val dataBs = ByteString(heartbeat.encode)
 

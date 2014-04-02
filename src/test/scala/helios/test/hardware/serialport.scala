@@ -2,7 +2,7 @@ package helios.test.hardware
 
 import akka.actor.{ActorRef, Props, ActorSystem}
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
-import org.scalatest.{BeforeAndAfter, Matchers, FlatSpecLike}
+import org.scalatest.{Ignore, BeforeAndAfter, Matchers, FlatSpecLike}
 import helios.util.nio.FileOps
 import akka.io.IO
 import com.github.jodersky.flow.{SerialSettings, Serial}
@@ -18,6 +18,7 @@ import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
+@Ignore
 class serialport extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
 with Matchers
