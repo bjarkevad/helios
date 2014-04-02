@@ -39,7 +39,9 @@ object Waypoints extends App {
 
     previousDir = actualVec
 
-    pidYaw.nextOutput(newDir, actualDir).toFloat
+    val o = pidYaw.nextOutput(newDir, actualDir).toFloat
+    println(s"New yaw: $o")
+    o
   }
 
   def calcPitch(position: SystemPosition, setpoint: SystemPosition): Future[Float] = Future {
@@ -62,7 +64,7 @@ object Waypoints extends App {
     }
   }
 
-  implicit val setpoint: SystemPosition = ???
+  implicit val setpoint: SystemPosition = SystemPosition(50,15,3,0,0,0,0)
 
   val helios = HeliosApplication().Helios
 
