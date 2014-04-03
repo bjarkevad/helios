@@ -12,7 +12,7 @@ import org.mavlink.messages.common.msg_heartbeat
 import com.github.jodersky.flow.SerialSettings
 import helios.mavlink.MAVLink.convertToMAVLink
 import scala.util.Success
-import helios.core.actors.flightcontroller.HeliosUART
+import helios.core.actors.flightcontroller.MAVLinkUART
 import helios.core.actors.flightcontroller.FlightControllerMessages.{WriteMAVLink, WriteData}
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import scala.concurrent.Future
@@ -44,7 +44,7 @@ with BeforeAndAfter {
   }
 
   def heliosUart: ActorRef = {
-    val s = system.actorOf(HeliosUART.props(IO(Serial), settings))
+    val s = system.actorOf(MAVLinkUART.props(IO(Serial), settings))
     Thread.sleep(100)
     s
   }

@@ -6,6 +6,10 @@ import java.net.InetSocketAddress
 import scala.util.Try
 
 object HeliosConfig {
+  trait SerialType
+  case class MAVLink() extends SerialType
+  case class Generic() extends SerialType
+
   lazy val config: Option[Config] = {
     val file = new File("./helios.conf")
     val any = Try(ConfigFactory.parseFileAnySyntax(file))
@@ -30,6 +34,15 @@ object HeliosConfig {
   }
   lazy val muxSerialBaudrate: Option[Int] = config.flatMap {
     c => Try(c.getInt("helios.muxserial.baudrate")).toOption
+  }
+
+  lazy val muxSerialType: Option[SerialType] = config.flatMap {
+    c => Try(
+      c.getString("helios.muxserial.type").toLowerCase match {
+        case "mavlink" => GroundControl()
+        case "generic" => Generic()
+      }
+    ).toOption
   }
 
   lazy val groundcontrolAddress: Option[InetSocketAddress] = {

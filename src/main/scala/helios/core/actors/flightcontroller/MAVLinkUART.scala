@@ -18,9 +18,11 @@ import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.mavlink.MAVLinkReader
 
-object HeliosUART {
+import helios.util.Subscribers._
+
+object MAVLinkUART {
   def props(uartManager: ActorRef, settings: SerialSettings): Props = {
-    Props(new HeliosUART(uartManager, settings))
+    Props(new MAVLinkUART(uartManager, settings))
   }
 
   lazy val privilegedMessages: Set[Int] = Set(
@@ -45,19 +47,16 @@ object HeliosUART {
     }
   }
 
-  implicit class subscriberImpls(val subs: Set[ActorRef]) {
-    def !(msg: Any)(implicit sender: ActorRef) = subs.foreach(_ ! msg)
-  }
 
   case class SetPrimary(newPrimary: ActorRef)
 
   case class NotAllowed(msg: MAVLinkMessage)
 
-  trait subscriptionEvent
+  trait SubscriptionEvent
 
-  case class AddSubscriber(actor: ActorRef) extends subscriptionEvent
+  case class AddSubscriber(actor: ActorRef) extends SubscriptionEvent
 
-  case class RemoveSubscriber(actor: ActorRef) extends subscriptionEvent
+  case class RemoveSubscriber(actor: ActorRef) extends SubscriptionEvent
 
   lazy val testCmd = {
     val msg = new msg_command_long(20, 0)
@@ -73,12 +72,12 @@ object HeliosUART {
 
 }
 
-class HeliosUART(uartManager: ActorRef, settings: SerialSettings) extends Actor
+class MAVLinkUART(uartManager: ActorRef, settings: SerialSettings) extends Actor
 with Stash {
 
-  import HeliosUART._
+  import MAVLinkUART._
 
-  lazy val logger = LoggerFactory.getLogger(classOf[HeliosUART])
+  lazy val logger = LoggerFactory.getLogger(classOf[MAVLinkUART])
 
   lazy val mlReader = new MAVLinkReader(0xFE.toByte)
 
@@ -109,7 +108,7 @@ with Stash {
       operator ! Serial.Register(self)
       unstashAll()
 
-    case _: subscriptionEvent =>
+    case _: SubscriptionEvent =>
       stash()
   }
 

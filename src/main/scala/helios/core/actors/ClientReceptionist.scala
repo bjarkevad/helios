@@ -7,14 +7,14 @@ import language.postfixOps
 import concurrent.duration._
 
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
-import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
+import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
 import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosRemote.RegisterAPIClient
 
 import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
-import helios.core.actors.flightcontroller.HeliosUART
+import helios.core.actors.flightcontroller.MAVLinkUART
 
 object ClientReceptionist {
   def props(uartProps: Props, groundControlProps: Props, muxUartProps: Props): Props =
@@ -63,10 +63,10 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       if (clients.isEmpty)
         uart ! SetPrimary(ch)
 
-      uart ! HeliosUART.AddSubscriber(ch)
+      uart ! MAVLinkUART.AddSubscriber(ch)
 
       if(c != groundControl)
-        muxUart ! HeliosUART.AddSubscriber(ch)
+        muxUart ! MAVLinkUART.AddSubscriber(ch)
 
       clients put(ch, c)
       c ! Registered(ch)
@@ -86,8 +86,8 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       if (clients.isEmpty)
         uart ! SetPrimary(ch)
 
-      uart ! HeliosUART.AddSubscriber(ch)
-      muxUart ! HeliosUART.AddSubscriber(ch)
+      uart ! MAVLinkUART.AddSubscriber(ch)
+      muxUart ! MAVLinkUART.AddSubscriber(ch)
 
       clients put(TypedActor(context.system).getActorRefFor(hd), c)
 
@@ -108,8 +108,8 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
     case Terminated(a) if clients contains a =>
       clients remove a
       clients(a) ! Unregistered()
-      uart ! HeliosUART.RemoveSubscriber(a)
-      muxUart ! HeliosUART.RemoveSubscriber(a)
+      uart ! MAVLinkUART.RemoveSubscriber(a)
+      muxUart ! MAVLinkUART.RemoveSubscriber(a)
 
     case Terminated(`groundControl`) =>
       context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)

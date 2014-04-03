@@ -1,27 +1,37 @@
-package helios.core.actors.flightcontroller
+package helios.core.actors.groundcontrol
 
-import akka.actor.{Terminated, ActorRef, Props, Actor}
+import akka.actor._
 import com.github.jodersky.flow.{NoSuchPortException, Serial, SerialSettings}
 import org.slf4j.LoggerFactory
+import org.mavlink.MAVLinkReader
+import helios.core.actors.flightcontroller.MAVLinkUART.{RemoveSubscriber, AddSubscriber, SubscriptionEvent}
+import helios.util.Subscribers._
 import scala.concurrent.duration._
-import scala.language.postfixOps
+import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import akka.util.ByteString
-import scala.concurrent.ExecutionContext.Implicits.global
 
-object MuxUART {
-  case class WriteData(data: ByteString)
-  def props(uartManager: ActorRef, settings: SerialSettings): Props = Props(new MuxUART(uartManager, settings))
+object GroundControlUART {
+  def props(uartManager: ActorRef, settings: SerialSettings): Props = {
+    Props(new GroundControlUART(uartManager, settings))
+  }
 }
 
-class MuxUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
+//TODO: Remove
+class GroundControlUART(uartManager: ActorRef, settings: SerialSettings) extends Actor
+with Stash {
 
-  import MuxUART._
+  ???
+  import scala.language.postfixOps
+  lazy val logger = LoggerFactory.getLogger(classOf[GroundControlUART])
 
-  lazy val logger = LoggerFactory.getLogger(classOf[MuxUART])
+  lazy val mlReader = new MAVLinkReader(0xFE.toByte)
 
   override def preStart() = {
-    logger.debug("Started MuxUART")
     uartManager ! Serial.Open(settings)
+  }
+
+  override def postStop() = {
+
   }
 
   override def receive: Receive = default
@@ -40,27 +50,20 @@ class MuxUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
       context become opened(operator, Set.empty)
       context watch operator
       operator ! Serial.Register(self)
+      unstashAll()
+
+    case _: SubscriptionEvent =>
+      stash()
   }
 
-  import MAVLinkUART.subscriberImpls
   def opened(operator: ActorRef, subscribers: Set[ActorRef]): Receive = {
-    case m@Serial.Received(data) =>
-      subscribers ! m
+    case WriteMAVLink(msg) =>
+      operator ! Serial.Write(ByteString(msg.encode()))
 
-    case WriteData(data) =>
-      operator ! Serial.Write(data)
-
-    case Terminated(`operator`) =>
-      throw new java.io.IOException("Serialport closed unexpectedly")
-
-    case Serial.Closed =>
-      logger.debug("Closed serialport")
-      context stop self
-
-    case MAVLinkUART.AddSubscriber(actor) =>
+    case AddSubscriber(actor) =>
       context become opened(operator, subscribers + actor)
 
-    case MAVLinkUART.RemoveSubscriber(actor) =>
+    case RemoveSubscriber(actor) =>
       context become opened(operator, subscribers - actor)
   }
 }

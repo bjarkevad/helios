@@ -11,8 +11,8 @@ import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import org.mavlink.messages._
 import org.mavlink.messages.common._
 import rx.lang.scala.Observable
-import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
-import helios.core.actors.flightcontroller.HeliosUART
+import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
+import helios.core.actors.flightcontroller.MAVLinkUART
 import java.lang.System.currentTimeMillis
 import com.github.jodersky.flow.Serial
 import akka.util.ByteString
@@ -94,7 +94,7 @@ with TypedActor.Receiver {
         logger.warn("Client was terminated, killing self")
         context.self ! PoisonPill
 
-      case HeliosUART.NotAllowed(m: MAVLinkMessage) =>
+      case MAVLinkUART.NotAllowed(m: MAVLinkMessage) =>
         logger.warn(s"Command not allowed" +
           s"setStatus(hbdefault): $m, please call takeControl() before trying to access flight functions")
 

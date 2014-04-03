@@ -9,7 +9,7 @@ import akka.actor._
 import scala.language.postfixOps
 import scala.concurrent.duration._
 
-import helios.core.actors.flightcontroller.HeliosUART
+import helios.core.actors.flightcontroller.MAVLinkUART
 import akka.util.ByteString
 import org.mavlink.messages._
 import org.mavlink.messages.common._
@@ -18,7 +18,7 @@ import helios.core.actors.flightcontroller.FlightControllerMessages.{WriteMAVLin
 import com.github.jodersky.flow.Serial.Received
 import com.github.jodersky.flow.SerialSettings
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.HeliosUART._
+import helios.core.actors.flightcontroller.MAVLinkUART._
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import com.github.jodersky.flow.SerialSettings
@@ -29,10 +29,10 @@ import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import com.github.jodersky.flow.SerialSettings
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
-import helios.core.actors.flightcontroller.HeliosUART.NotAllowed
+import helios.core.actors.flightcontroller.MAVLinkUART.NotAllowed
 import com.github.jodersky.flow.Serial.Received
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
-import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
+import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
 
 class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
@@ -72,7 +72,7 @@ with ImplicitSender {
   lazy val recep = TestProbe()
 
   def initUART: ActorRef = {
-    val hu = system.actorOf(HeliosUART.props(uartManager.ref, settings))
+    val hu = system.actorOf(MAVLinkUART.props(uartManager.ref, settings))
     uartManager.expectMsg(Serial.Open(settings))
     uartManager.send(hu, Serial.Opened(settings, operator.ref))
     operator.expectMsg(Serial.Register(hu))
@@ -101,7 +101,7 @@ with ImplicitSender {
 
   it should "read data from the UART" in {
     val uartProxy = system.actorOf(Props(new Actor {
-      val child = context.actorOf(HeliosUART.props(uartManager.ref, settings), "HeliosUARTwParent")
+      val child = context.actorOf(MAVLinkUART.props(uartManager.ref, settings), "HeliosUARTwParent")
       def receive = {
         case x if sender == child =>
           println(s"Forwarding to self $x")
@@ -141,7 +141,7 @@ with ImplicitSender {
     val sp = initUART
 
     val msg = new msg_command_long(20,0)
-    HeliosUART.privilegedCommands.par.foreach { id =>
+    MAVLinkUART.privilegedCommands.par.foreach { id =>
       msg.command = id
       probe.send(sp, WriteMAVLink(msg))
       operator.expectNoMsg(50 millis)
@@ -168,7 +168,7 @@ with ImplicitSender {
 
     val msg = new msg_command_long(20,0)
 
-    HeliosUART.privilegedCommands.par.foreach { id =>
+    MAVLinkUART.privilegedCommands.par.foreach { id =>
       msg.command = id
       probe.send(sp, WriteMAVLink(msg))
       probe.expectNoMsg(50 millis)

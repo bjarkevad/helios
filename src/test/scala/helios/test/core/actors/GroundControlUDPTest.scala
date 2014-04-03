@@ -3,7 +3,6 @@ package helios.test.core.actors
 import org.scalatest._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestProbe, TestKit}
-import helios.core.actors.GroundControlUDP
 import scala.concurrent.duration._
 
 import scala.language.postfixOps
@@ -14,6 +13,7 @@ import org.mavlink.messages.common.msg_heartbeat
 import org.mavlink.messages._
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.CoreMessages.Registered
+import helios.core.actors.groundcontrol.GroundControlUDP
 
 class GroundControlUDPTest extends TestKit(ActorSystem("GroundControlTest"))
 with FlatSpecLike

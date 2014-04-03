@@ -4,7 +4,7 @@ import akka.actor.{Props, ActorRef, Actor}
 import org.slf4j.LoggerFactory
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.HeliosUART
+import helios.core.actors.flightcontroller.MAVLinkUART
 
 object ClientHandler {
   def props(client: ActorRef, uart: ActorRef): Props =
@@ -32,7 +32,7 @@ class ClientHandler(client: ActorRef, uart: ActorRef) extends Actor {
     case m@PublishMAVLink(msg) =>
       client ! m
 
-    case HeliosUART.NotAllowed(msg) =>
+    case MAVLinkUART.NotAllowed(msg) =>
       logger.warn(s"Tried to write $msg with insufficient permissions")
 
     case _ =>

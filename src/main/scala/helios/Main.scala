@@ -1,11 +1,13 @@
 package helios
 
 import akka.actor.{ActorRef, Props, ActorSystem}
-import helios.core.actors.{GroundControlUDP, ClientReceptionist}
-import helios.core.actors.flightcontroller.{MuxUART, HeliosUART, MockSerial}
+import helios.core.actors.ClientReceptionist
+import helios.core.actors.flightcontroller.{MuxUART, MAVLinkUART, MockSerial}
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import java.net.InetSocketAddress
+import helios.core.actors.groundcontrol.GroundControlUDP
+import helios.HeliosConfig.{MAVLink, Generic}
 
 object Main extends App {
   def HeliosInit(implicit system: ActorSystem): ActorRef = {
@@ -32,7 +34,7 @@ object Main extends App {
 
       lazy val settings: SerialSettings = {
         SerialSettings(
-          HeliosConfig.serialdevice.getOrElse("/dev/ttyUSB0"),
+          HeliosConfig.serialdevice.getOrElse("/dev/ttyO2"),
           HeliosConfig.serialBaudrate.getOrElse(115200),
           8,
           twoStopBits = false,
@@ -40,7 +42,7 @@ object Main extends App {
         )
       }
 
-      HeliosUART.props(uartManager, settings)
+      MAVLinkUART.props(uartManager, settings)
     }
 
     lazy val muxUartProps: Props = {
@@ -55,8 +57,12 @@ object Main extends App {
           Parity.None
         )
       }
-
-      MuxUART.props(uartManager, settings)
+      HeliosConfig.muxSerialType.getOrElse(Generic()) match {
+        case MAVLink() =>
+          MAVLinkUART.props(uartManager, settings)
+        case Generic() =>
+          MuxUART.props(uartManager, settings)
+      }
     }
     system.actorOf(
       ClientReceptionist.props(uartProps, groundControlProps, muxUartProps), "receptionist")

@@ -1,11 +1,10 @@
-package helios.core.actors
+package helios.core.actors.groundcontrol
 
 import akka.actor._
 import akka.io.UdpConnected
 import akka.util.ByteString
 
 import org.mavlink.messages._
-import org.mavlink.messages.common._
 
 import helios.mavlink.MAVLink
 import MAVLink._
@@ -38,42 +37,42 @@ class GroundControlUDP(udpManager: ActorRef, address: InetSocketAddress) extends
 
   override def receive: Receive = unbound()
 
-  def unbound(connection: Option[ActorRef] = None, handler: Option[ActorRef] = None): Receive = {
+  def unbound(connection: Option[ActorRef] = None, receivers: Option[ActorRef] = None): Receive = {
     case UdpConnected.Connected =>
       val connection = sender
-      handler match {
+      receivers match {
         case Some(h) =>
           context become registered(connection, h)
         case None =>
-          context become unbound(Some(connection), handler)
+          context become unbound(Some(connection), receivers)
       }
 
     case UdpConnected.CommandFailed(cmd: UdpConnected.Connect) =>
       logger.warn(s"Groundcontrol could not connect to ${address.getHostName}:${address.getPort}")
       self ! PoisonPill
 
-    case Registered(handler) =>
+    case Registered(receivers) =>
       connection match {
         case Some(c) =>
-          context become registered(c, handler)
+          context become registered(c, receivers)
         case None =>
-          context become unbound(connection, Option(handler))
+          context become unbound(connection, Option(receivers))
       }
   }
 
-  def registered(connection: ActorRef, handler: ActorRef): Receive = {
+  def registered(connection: ActorRef, receivers: ActorRef): Receive = {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
         case Success(m: MAVLinkMessage) =>
           logger.debug(s"received MAVLink: $m")
-          handler ! WriteMAVLink(m)
+          receivers ! WriteMAVLink(m)
 
         case Failure(e: Throwable) =>
           logger.warn(s"received an unknown message over UDP")
       }
 
     case msg@UdpConnected.CommandFailed(cmd) =>
-      connection ! cmd //RESEND MOFO
+      connection ! cmd
 
     case msg@PublishMAVLink(ml) =>
       connection ! UdpConnected.Send(ByteString(ml.encode()))
