@@ -3,7 +3,7 @@ package helios.test.core.actors
 import org.scalatest._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestProbe, TestKit}
-import helios.core.actors.GroundControl
+import helios.core.actors.GroundControlUDP
 import scala.concurrent.duration._
 
 import scala.language.postfixOps
@@ -15,7 +15,7 @@ import org.mavlink.messages._
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.CoreMessages.Registered
 
-class GroundControlTest extends TestKit(ActorSystem("GroundControlTest"))
+class GroundControlUDPTest extends TestKit(ActorSystem("GroundControlTest"))
 with FlatSpecLike
 with BeforeAndAfterAll
 with ShouldMatchers
@@ -46,7 +46,7 @@ with ImplicitSender {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
-    val gc = system.actorOf(GroundControl.props(udpMan.ref, address))
+    val gc = system.actorOf(GroundControlUDP.props(udpMan.ref, address))
 
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)
@@ -57,7 +57,7 @@ with ImplicitSender {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
-    val gc = system.actorOf(GroundControl.props(udpMan.ref, address))
+    val gc = system.actorOf(GroundControlUDP.props(udpMan.ref, address))
 
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)
@@ -77,7 +77,7 @@ with ImplicitSender {
     val udpMan = TestProbe()
     val udpCon = TestProbe()
 
-    val gc = system.actorOf(GroundControl.props(udpMan.ref, address))
+    val gc = system.actorOf(GroundControlUDP.props(udpMan.ref, address))
 
     udpMan.expectMsg(UdpConnected.Connect(gc, new InetSocketAddress("localhost", 14550)))
     udpCon.send(gc, UdpConnected.Connected)

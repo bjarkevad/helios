@@ -16,17 +16,16 @@ import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import helios.core.actors.CoreMessages._
 
-object GroundControl {
+object GroundControlUDP {
 
-  def props(udpManager: ActorRef, address: InetSocketAddress): Props = Props(new GroundControl(udpManager, address))
+  def props(udpManager: ActorRef, address: InetSocketAddress): Props = Props(new GroundControlUDP(udpManager, address))
 }
 
-class GroundControl(udpManager: ActorRef, address: InetSocketAddress) extends Actor with Stash {
+class GroundControlUDP(udpManager: ActorRef, address: InetSocketAddress) extends Actor with Stash {
 
   import language.postfixOps
 
-  lazy val logger = LoggerFactory.getLogger(classOf[GroundControl])
-
+  lazy val logger = LoggerFactory.getLogger(classOf[GroundControlUDP])
 
   override def preStart() = {
     logger.debug(s"Address: ${address.getHostName}: ${address.getPort}")

@@ -1,7 +1,7 @@
 package helios
 
 import akka.actor.{ActorRef, Props, ActorSystem}
-import helios.core.actors.{GroundControl, ClientReceptionist}
+import helios.core.actors.{GroundControlUDP, ClientReceptionist}
 import helios.core.actors.flightcontroller.{MuxUART, HeliosUART, MockSerial}
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
@@ -17,7 +17,7 @@ object Main extends App {
           .getOrElse(new InetSocketAddress("localhost", 14550))
       }
 
-      GroundControl.props(IO(UdpConnected), address)
+      GroundControlUDP.props(IO(UdpConnected), address)
     }
 
     lazy val uartProps: Props = {
