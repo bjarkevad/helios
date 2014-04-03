@@ -3,7 +3,7 @@ package helios.api.test
 import akka.testkit._
 import akka.actor._
 import org.scalatest.{BeforeAndAfterEach, Matchers, FlatSpecLike}
-import helios.api.{HeliosApplication, HeliosAPI}
+import helios.api.{HeliosRemote, HeliosApplication, HeliosAPI}
 import scala.concurrent.{Await, Awaitable, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -12,7 +12,7 @@ import org.mavlink.messages.common.{msg_attitude, msg_heartbeat}
 import org.mavlink.messages._
 import scala.concurrent.ExecutionContext.Implicits.global
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.api.HeliosApplicationDefault.RegisterAPIClient
+import helios.api.HeliosRemote.RegisterAPIClient
 import helios.api.HeliosAPI._
 
 
@@ -36,7 +36,7 @@ with BeforeAndAfterEach {
   lazy val heliosApp: Option[HeliosApplication] = {
     val res = Future {
       //HeliosApplication.apply blocks!
-      Option(HeliosApplication(system, probe.ref.path))
+      Option(HeliosRemote(system, probe.ref.path))
     }
 
     probe.expectMsgClass(classOf[RegisterAPIClient])

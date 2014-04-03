@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import org.slf4j.LoggerFactory
 import helios.api.HeliosAPI
 import helios.api.HeliosAPI._
-import helios.api.HeliosApplicationDefault._
+import helios.api.HeliosRemote._
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import org.mavlink.messages._
@@ -205,7 +205,12 @@ with TypedActor.Receiver {
   }
 
   //Application controlled
-  override def leaveControl(): Unit = ???
+  override def leaveControl(): Unit = {
+    val msg = new msg_change_operator_control(systemID, 0)
+    msg.control_request = 1
+
+    uart ! WriteMAVLink(msg)
+  }
 
   override def takeControl(): Unit = {
     uart ! SetPrimary(context.self)

@@ -10,7 +10,7 @@ import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
 import helios.core.actors.flightcontroller.HeliosUART.SetPrimary
 import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.api.HeliosApplicationDefault.RegisterAPIClient
+import helios.api.HeliosRemote.RegisterAPIClient
 
 import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}

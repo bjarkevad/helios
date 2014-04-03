@@ -1,6 +1,6 @@
 package helios
 
-import helios.api.HeliosApplication
+import helios.api.{HeliosRemote, HeliosApplication}
 import helios.api.HeliosAPI.AttitudeDeg
 import helios.api.Streams._
 
@@ -28,7 +28,7 @@ object TestApp extends App {
 //    Thread.sleep(1000)
 //  }
 
-  val HeliosApp = HeliosApplication()
+  val HeliosApp = HeliosRemote()
   val Helios = HeliosApp.Helios
 
   Helios.uartStream.subscribe(println(_))
