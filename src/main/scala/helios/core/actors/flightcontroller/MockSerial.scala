@@ -8,7 +8,6 @@ import org.mavlink.messages._
 import helios.mavlink.MAVLink.convertToMAVLink
 import akka.util.ByteString
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.MAVLinkUART.{RemoveSubscriber, AddSubscriber}
 
 object MockSerial {
   def props = Props(new MockSerial)

@@ -69,10 +69,8 @@ object Main extends App {
   }
 
 
-  //implicit val system = ActorSystem("Main")
-
-
-  //  HeliosGPIO.initialize
+  implicit val system = ActorSystem("Main")
+  HeliosInit
 }
 
 

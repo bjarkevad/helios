@@ -8,6 +8,7 @@ import helios.api.HeliosAPI.SystemStatus
 import akka.util.ByteString
 import scala.util.{Success, Failure, Try}
 import helios.api.HeliosRemote.{UartData, RegisterAPIClient}
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
 class HeliosRemote(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
@@ -52,6 +53,12 @@ with TypedActor.PostStop {
     import Handlers._
 
     message match {
+      case PublishMAVLink(m) =>
+        if(m.componentId == 1)
+          gcMlStream onNext m
+        else
+          fcMlStream onNext m
+
       case m: SystemStatus =>
         m.status match {
           case MAV_STATE.MAV_STATE_EMERGENCY =>

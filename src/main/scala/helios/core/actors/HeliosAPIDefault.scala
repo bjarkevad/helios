@@ -69,6 +69,8 @@ with TypedActor.Receiver {
   override def onReceive(message: Any, sender: ActorRef): Unit = {
     message match {
       case m@PublishMAVLink(ml) =>
+        client ! m //MAVLink Stream
+
         ml.messageType match {
           case IMAVLinkMessageID.MAVLINK_MSG_ID_HEARTBEAT =>
             val hb = ml.asInstanceOf[msg_heartbeat]

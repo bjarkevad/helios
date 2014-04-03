@@ -42,7 +42,7 @@ class MuxUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
       operator ! Serial.Register(self)
   }
 
-  import MAVLinkUART.subscriberImpls
+  import helios.util.Subscribers._
   def opened(operator: ActorRef, subscribers: Set[ActorRef]): Receive = {
     case m@Serial.Received(data) =>
       subscribers ! m
@@ -57,10 +57,7 @@ class MuxUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
       logger.debug("Closed serialport")
       context stop self
 
-    case MAVLinkUART.AddSubscriber(actor) =>
-      context become opened(operator, subscribers + actor)
-
-    case MAVLinkUART.RemoveSubscriber(actor) =>
-      context become opened(operator, subscribers - actor)
+    case MAVLinkUART.SetSubscribers(subs) =>
+      context become opened(operator, subs)
   }
 }

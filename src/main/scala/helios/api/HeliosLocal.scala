@@ -8,6 +8,7 @@ import helios.api.HeliosAPI.SystemStatus
 import helios.api.HeliosRemote.{UartData, RegisterAPIClient}
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
 class HeliosLocal(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
@@ -39,6 +40,12 @@ with TypedActor.PostStop {
     import Handlers._
 
     message match {
+      case PublishMAVLink(m) =>
+        if(m.componentId == 1)
+          gcMlStream onNext m
+        else
+          fcMlStream onNext m
+
       case m: SystemStatus =>
         m.status match {
           case MAV_STATE.MAV_STATE_EMERGENCY =>

@@ -4,6 +4,7 @@ import akka.actor.Scheduler
 import rx.lang.scala.{Observable, Subject}
 import helios.api.HeliosAPI._
 import akka.util.ByteString
+import org.mavlink.messages.MAVLinkMessage
 
 
 trait HeliosApplication {
@@ -25,6 +26,12 @@ object Streams {
   private [api]
   lazy val uStream: Subject[ByteString] = Subject()
 
+  private [api]
+  lazy val gcMlStream: Subject[MAVLinkMessage] = Subject()
+
+  private [api]
+  lazy val fcMlStream: Subject[MAVLinkMessage] = Subject()
+
   implicit class StreamsImpl(val helios: HeliosAPI) {
     lazy val systemStatusStream: Observable[SystemStatus] = statusStream
     lazy val positionStream: Observable[SystemPosition] = posStream
@@ -39,6 +46,8 @@ object Streams {
     }
 
     lazy val uartStream: Observable[ByteString] = uStream
+    lazy val groundControlMAVLinkStream: Observable[MAVLinkMessage] = gcMlStream
+    lazy val flightcontrollerMAVLinkStream: Observable[MAVLinkMessage] = fcMlStream
   }
 }
 

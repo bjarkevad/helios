@@ -30,12 +30,14 @@ class ClientHandler(client: ActorRef, uart: ActorRef) extends Actor {
       uart ! m
 
     case m@PublishMAVLink(msg) =>
-      client ! m
+      if(sender != client)
+        client ! m
 
     case MAVLinkUART.NotAllowed(msg) =>
       logger.warn(s"Tried to write $msg with insufficient permissions")
 
-    case _ =>
+    case m@_ =>
+      logger.warn(s"Received something unknown $m")
   }
 
 }

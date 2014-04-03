@@ -116,7 +116,7 @@ with ImplicitSender {
     uartManager.send(uartProxy, Serial.Opened(settings, operator.ref))
     operator.expectMsgClass(classOf[Serial.Register])
 
-    operator.send(uartProxy, AddSubscriber(self))
+    operator.send(uartProxy, SetSubscribers(Set(self)))
 
     val dataBs = ByteString(heartbeat.encode)
 

@@ -39,7 +39,7 @@ object HeliosConfig {
   lazy val muxSerialType: Option[SerialType] = config.flatMap {
     c => Try(
       c.getString("helios.muxserial.type").toLowerCase match {
-        case "mavlink" => GroundControl()
+        case "mavlink" => MAVLink()
         case "generic" => Generic()
       }
     ).toOption

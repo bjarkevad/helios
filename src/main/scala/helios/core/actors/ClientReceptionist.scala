@@ -47,7 +47,16 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
   val muxUart = context.actorOf(muxUartProps, "MuxUART")
   val groundControl = context.actorOf(groundControlProps, "GroundControl")
 
-  context watch uart //TODO: fix supervision strategy for this
+  def updateSubscriptions {
+    logger.debug(s"UpdateSubscriptions count: ${clients.keys.toSet.size}")
+    uart ! MAVLinkUART.SetSubscribers(clients.keys.toSet)
+    muxUart ! MAVLinkUART.SetSubscribers(clients.keys.toSet)
+    groundControl ! MAVLinkUART.SetSubscribers(clients.keys.toSet)
+  }
+
+  //TODO: fix supervision strategy for UARTS
+  context watch uart
+  context watch muxUart
   context watch groundControl
 
   override def preStart() = {
@@ -63,13 +72,10 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       if (clients.isEmpty)
         uart ! SetPrimary(ch)
 
-      uart ! MAVLinkUART.AddSubscriber(ch)
-
-      if(c != groundControl)
-        muxUart ! MAVLinkUART.AddSubscriber(ch)
-
       clients put(ch, c)
+
       c ! Registered(ch)
+      updateSubscriptions
 
     case UnregisterClient(c) if clients contains c =>
       clients remove c
@@ -86,42 +92,37 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       if (clients.isEmpty)
         uart ! SetPrimary(ch)
 
-      uart ! MAVLinkUART.AddSubscriber(ch)
-      muxUart ! MAVLinkUART.AddSubscriber(ch)
-
       clients put(TypedActor(context.system).getActorRefFor(hd), c)
 
       sender ! hd
+      updateSubscriptions
 
     case m@PublishMAVLink(ml) =>
-      //logger.debug(s"Publishing MAVLink: $ml")
       clients.keys foreach (_ ! m)
 
     case WriteMAVLink(m) =>
       logger.error("ClientReceptionist should not receive WriteMAVLink messages!!")
 
-    case _ =>
-      sender ! NotRegistered(sender)
   }
 
   def terminator: Receive = {
-    case Terminated(a) if clients contains a =>
-      clients remove a
-      clients(a) ! Unregistered()
-      uart ! MAVLinkUART.RemoveSubscriber(a)
-      muxUart ! MAVLinkUART.RemoveSubscriber(a)
-
     case Terminated(`groundControl`) =>
       context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)
 
     case Terminated(a) =>
-      logger.debug("Unhandled terminated message")
+      clients remove a
+      clients(a) ! Unregistered()
+      updateSubscriptions
+
+    case m@_ =>
+      logger.error(s"ClientReceptionist received: $m")
+    //sender ! NotRegistered(sender)
   }
 }
 
 object CoreMessages {
 
-//  import SubscriptionTypes._
+  //  import SubscriptionTypes._
 
   trait Request
 
@@ -139,9 +140,9 @@ object CoreMessages {
 
   case class NotRegistered(client: ActorRef) extends Response
 
-//  case class Subscribe(subType: SubscriptionType) extends Request
-//
-//  case class Unsubscribe(subType: SubscriptionType) extends Request
+  //  case class Subscribe(subType: SubscriptionType) extends Request
+  //
+  //  case class Unsubscribe(subType: SubscriptionType) extends Request
 
   case class NotAllowed() extends Response
 
