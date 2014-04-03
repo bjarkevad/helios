@@ -156,7 +156,7 @@ with Stash {
         case _ =>
       }
 
-      Thread.sleep(2)
+      //Thread.sleep(2)
 
     case WriteData(data) =>
       val dataBs = ByteString(data.getBytes)
