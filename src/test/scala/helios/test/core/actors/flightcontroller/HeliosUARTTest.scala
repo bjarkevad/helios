@@ -33,6 +33,7 @@ import helios.core.actors.flightcontroller.MAVLinkUART.NotAllowed
 import com.github.jodersky.flow.Serial.Received
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
 import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
+import helios.util.Privileged.PrivilegedLike
 
 class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
@@ -141,7 +142,8 @@ with ImplicitSender {
     val sp = initUART
 
     val msg = new msg_command_long(20,0)
-    MAVLinkUART.privilegedCommands.par.foreach { id =>
+
+    PrivilegedLike.PrivilegedMAVLink.privilegedCommands.par.foreach { id =>
       msg.command = id
       probe.send(sp, WriteMAVLink(msg))
       operator.expectNoMsg(50 millis)
@@ -168,7 +170,7 @@ with ImplicitSender {
 
     val msg = new msg_command_long(20,0)
 
-    MAVLinkUART.privilegedCommands.par.foreach { id =>
+    PrivilegedLike.PrivilegedMAVLink.privilegedCommands.par.foreach { id =>
       msg.command = id
       probe.send(sp, WriteMAVLink(msg))
       probe.expectNoMsg(50 millis)
