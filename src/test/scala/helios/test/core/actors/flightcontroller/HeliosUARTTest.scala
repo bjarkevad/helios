@@ -34,6 +34,7 @@ import com.github.jodersky.flow.Serial.Received
 import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
 import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
 import helios.util.Privileged.PrivilegedLike
+import helios.core.actors.CoreMessages.RegisterClient
 
 class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
@@ -117,6 +118,7 @@ with ImplicitSender {
     uartManager.send(uartProxy, Serial.Opened(settings, operator.ref))
     operator.expectMsgClass(classOf[Serial.Register])
 
+    expectMsgClass(classOf[RegisterClient])
     operator.send(uartProxy, SetSubscribers(Set(self)))
 
     val dataBs = ByteString(heartbeat.encode)

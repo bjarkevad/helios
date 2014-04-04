@@ -98,7 +98,8 @@ with BeforeAndAfterEach {
   }
 
   def forwardToApp[T](msgType: Class[T]) {
-    val m: T = client.expectMsgClass(msgType)
+    client.expectMsgClass(classOf[PublishMAVLink]) //Stream
+    val m: T = client.expectMsgClass(msgType) //Interpreted message
     client.forward(heliosApp.get.ref, m)
   }
 
