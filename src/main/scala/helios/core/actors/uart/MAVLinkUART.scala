@@ -84,6 +84,7 @@ with Stash {
   }
 
   def opened(operator: ActorRef, primary: ActorRef, subscribers: Set[ActorRef]): Receive = {
+    //TODO: Fix this mess
     case Serial.Received(data) =>
       Try(mlReader.getNextMessage(data.toArray, data.length)) match {
         case Success(msg: MAVLinkMessage) =>
