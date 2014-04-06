@@ -9,34 +9,21 @@ import akka.actor._
 import scala.language.postfixOps
 import scala.concurrent.duration._
 
-import helios.core.actors.flightcontroller.MAVLinkUART
+import helios.core.actors.uart.MAVLinkUART
 import akka.util.ByteString
 import org.mavlink.messages._
 import org.mavlink.messages.common._
 
-import helios.core.actors.flightcontroller.FlightControllerMessages.{WriteMAVLink, WriteData, WriteAck}
-import com.github.jodersky.flow.Serial.Received
-import com.github.jodersky.flow.SerialSettings
-import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.MAVLinkUART._
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
+import helios.core.actors.uart.DataMessages.WriteData
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import com.github.jodersky.flow.SerialSettings
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import helios.core.actors.uart.DataMessages.WriteMAVLink
 import com.github.jodersky.flow.Serial.Received
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteData
-import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import com.github.jodersky.flow.SerialSettings
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
-import helios.core.actors.flightcontroller.MAVLinkUART.NotAllowed
-import com.github.jodersky.flow.Serial.Received
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteAck
-import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
+import helios.core.actors.uart.DataMessages.WriteAck
 import helios.util.Privileged.PrivilegedLike
-import helios.core.actors.CoreMessages.RegisterClient
+import helios.core.actors.CoreMessages._
 
-class HeliosUARTTest extends TestKit(ActorSystem("SerialPort"))
+class MAVLinkUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
 with BeforeAndAfterAll
 with Matchers
@@ -82,23 +69,9 @@ with ImplicitSender {
     hu
   }
 
-
-
   "HeliosUART" should "Open and register" in {
     //internal.InternalSerial.debug(true)
     initUART
-  }
-
-  it should "write data to the UART" in {
-    val probe = TestProbe()
-
-    val sp = initUART
-
-    val data = "write this data"
-    val dataBs = ByteString(data.getBytes)
-
-    probe.send(sp, WriteData(data))
-    operator.expectMsg(Serial.Write(dataBs, WriteAck(dataBs)))
   }
 
   it should "read data from the UART" in {

@@ -1,4 +1,4 @@
-package helios.core.actors.flightcontroller
+package helios.core.actors.uart
 
 import akka.actor.{ActorRef, Props, Actor}
 import org.slf4j.LoggerFactory

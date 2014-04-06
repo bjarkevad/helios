@@ -68,7 +68,7 @@ trait HeliosAPI {
   //PUBLIC
   def terminate(): Unit
 
-  def writeToUart(data: ByteString): Unit
+  def writeToUart(data: String): Unit
 
   def getFlightMode: Future[FlightMode] //System flightmode
 

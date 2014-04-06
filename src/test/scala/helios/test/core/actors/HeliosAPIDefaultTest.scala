@@ -1,9 +1,9 @@
 package helios.test.core.actors
 
 import org.scalatest._
-import helios.core.actors.HeliosAPIDefault
 import helios.api.HeliosAPI.SystemStatus
 import org.mavlink.messages.{MAV_MODE, MAV_MODE_FLAG}
+import helios.core.HeliosAPIDefault
 
 class HeliosAPIDefaultTest extends FlatSpec with Matchers {
 

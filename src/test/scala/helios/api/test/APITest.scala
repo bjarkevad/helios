@@ -4,7 +4,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import java.lang.System.currentTimeMillis
-import helios.core.actors.flightcontroller.FlightControllerMessages._
+import helios.core.actors.uart.DataMessages._
 import helios.api.HeliosAPI.{CommandFailure, CommandSuccess}
 import helios.api.Handlers._
 
