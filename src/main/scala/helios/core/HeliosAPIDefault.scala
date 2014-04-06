@@ -1,4 +1,4 @@
-package helios.core.actors
+package helios.core
 
 import akka.actor._
 import scala.concurrent.Future
@@ -7,16 +7,14 @@ import helios.api.HeliosAPI
 import helios.api.HeliosAPI._
 import helios.api.HeliosRemote._
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import helios.core.actors.uart.DataMessages.{WriteData, WriteMAVLink}
+import helios.core.actors.CoreMessages.{SetPrimary, NotAllowed}
 import org.mavlink.messages._
 import org.mavlink.messages.common._
 import rx.lang.scala.Observable
-import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
-import helios.core.actors.flightcontroller.MAVLinkUART
 import java.lang.System.currentTimeMillis
 import com.github.jodersky.flow.Serial
 import akka.util.ByteString
-import helios.core.actors.flightcontroller.MuxUART.WriteData
 
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val uart: ActorRef, val muxUart: ActorRef, val systemID: Int) extends HeliosAPI
 with TypedActor.PreStart
@@ -96,7 +94,7 @@ with TypedActor.Receiver {
         logger.warn("Client was terminated, killing self")
         context.self ! PoisonPill
 
-      case MAVLinkUART.NotAllowed(m: MAVLinkMessage) =>
+      case NotAllowed(m: MAVLinkMessage) =>
         logger.warn(s"Command not allowed" +
           s"setStatus(hbdefault): $m, please call takeControl() before trying to access flight functions")
 
@@ -109,7 +107,7 @@ with TypedActor.Receiver {
     Future(currentTimeMillis() - sent_ms)
   }
 
-  override def writeToUart(data: ByteString): Unit = muxUart ! WriteData(data)
+  override def writeToUart(data: String): Unit = muxUart ! WriteData(data)
 
   override def newMission(mission: Mission): Unit = ???
 
@@ -273,7 +271,7 @@ object HeliosAPIDefault {
   }
 
   def removeFlag(currentStatus: Option[SystemStatus], flags: Int*): Int = {
-    if(hasFlags(currentStatus, flags: _*))
+    if (hasFlags(currentStatus, flags: _*))
       (getMode(currentStatus) /: flags)(_ - _)
     else
       getMode(currentStatus)

@@ -2,7 +2,7 @@ package helios
 
 import akka.actor.{ActorRef, Props, ActorSystem}
 import helios.core.actors.ClientReceptionist
-import helios.core.actors.flightcontroller.{MuxUART, MAVLinkUART, MockSerial}
+import helios.core.actors.uart.{GenericUART, MAVLinkUART, MockSerial}
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import java.net.InetSocketAddress
@@ -61,7 +61,7 @@ object Main extends App {
         case MAVLink() =>
           MAVLinkUART.props(uartManager, settings)
         case Generic() =>
-          MuxUART.props(uartManager, settings)
+          GenericUART.props(uartManager, settings)
       }
     }
     system.actorOf(

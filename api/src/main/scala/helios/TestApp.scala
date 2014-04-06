@@ -39,7 +39,7 @@ object TestApp extends App {
   class run extends Runnable {
     var i = 0
     override def run(): Unit = {
-      Helios.writeToUart(ByteString(i))
+      Helios.writeToUart(i.toString)
       i += 1
     }
   }

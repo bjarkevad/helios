@@ -1,26 +1,26 @@
-package helios.core.actors.flightcontroller
+package helios.core.actors.uart
 
 import akka.actor.{Terminated, ActorRef, Props, Actor}
+import akka.util.ByteString
 import com.github.jodersky.flow.{NoSuchPortException, Serial, SerialSettings}
 import org.slf4j.LoggerFactory
 import scala.concurrent.duration._
-import scala.language.postfixOps
-import akka.util.ByteString
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.postfixOps
+import helios.core.actors.CoreMessages.SetSubscribers
+import helios.core.actors.uart.DataMessages.WriteData
 
-object MuxUART {
-  case class WriteData(data: ByteString)
-  def props(uartManager: ActorRef, settings: SerialSettings): Props = Props(new MuxUART(uartManager, settings))
+object GenericUART {
+  def props(uartManager: ActorRef, settings: SerialSettings): Props = Props(new GenericUART(uartManager, settings))
 }
 
-class MuxUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
+class GenericUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
 
-  import MuxUART._
+  import helios.util.Subscribers._
 
-  lazy val logger = LoggerFactory.getLogger(classOf[MuxUART])
+  lazy val logger = LoggerFactory.getLogger(classOf[GenericUART])
 
   override def preStart() = {
-    logger.debug("Started MuxUART")
     uartManager ! Serial.Open(settings)
   }
 
@@ -37,27 +37,26 @@ class MuxUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
 
     case Serial.Opened(set, operator) =>
       logger.debug(s"Serial port opened with settings: $set and parent: ${context.parent}")
-      context become opened(operator, Set.empty)
+      context become opened(operator)
       context watch operator
       operator ! Serial.Register(self)
   }
 
-  import helios.util.Subscribers._
-  def opened(operator: ActorRef, subscribers: Set[ActorRef]): Receive = {
+  def opened(operator: ActorRef, subscribers: Subscribers = NoSubscribers): Receive = {
     case m@Serial.Received(data) =>
       subscribers ! m
 
     case WriteData(data) =>
-      operator ! Serial.Write(data)
+      operator ! Serial.Write(ByteString(data))
 
     case Terminated(`operator`) =>
       throw new java.io.IOException("Serialport closed unexpectedly")
 
     case Serial.Closed =>
-      logger.debug("Closed serialport")
+      logger.debug("Serialport closed")
       context stop self
 
-    case MAVLinkUART.SetSubscribers(subs) =>
+    case SetSubscribers(subs) =>
       context become opened(operator, subs)
   }
 }
