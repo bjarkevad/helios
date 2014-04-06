@@ -62,9 +62,9 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
     logger.debug(context.self.path.toString)
   }
 
-  def receive = defaultReceive(groundControlUnregistered = true) orElse terminator
+  def receive = defaultReceive orElse terminator
 
-  def defaultReceive(groundControlUnregistered: Boolean): Receive = {
+  def defaultReceive: Receive = {
     case RegisterClient(c) =>
       val ch = context.actorOf(ClientHandler.props(c, uart))
 
@@ -94,28 +94,24 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       clients put(TypedActor(context.system).getActorRefFor(hd), c)
 
       sender ! hd
-      updateSubscriptions
+      updateSubscriptions()
 
     case m@PublishMAVLink(ml) =>
-      clients.keys foreach (_ ! m)
+      logger.error("ClientReceptionist should not receive PublishMAVLink messages!!")
+      //clients.keys foreach (_ ! m)
 
     case WriteMAVLink(m) =>
       logger.error("ClientReceptionist should not receive WriteMAVLink messages!!")
-
   }
 
   def terminator: Receive = {
-    case Terminated(`groundControl`) =>
-      context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)
-
     case Terminated(a) =>
       clients remove a
       clients(a) ! Unregistered()
-      updateSubscriptions
+      updateSubscriptions()
 
     case m@_ =>
       logger.error(s"ClientReceptionist received: $m")
-    //sender ! NotRegistered(sender)
   }
 }
 
@@ -140,4 +136,5 @@ object CoreMessages {
   case class NotAllowed(msg: MAVLinkMessage) extends Response
 
   case class SetSubscribers(subscribers: Subscribers) extends Response
+
 }

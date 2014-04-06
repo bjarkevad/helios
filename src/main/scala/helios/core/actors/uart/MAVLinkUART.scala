@@ -73,6 +73,7 @@ class MAVLinkUART(uartManager: ActorRef, settings: SerialSettings)
   }
 
   def opened(operator: ActorRef, primary: ActorRef, subscribers: Subscribers = NoSubscribers): Receive = {
+    //TODO: Fix this mess
     case Serial.Received(data) =>
       Try(mlReader.getNextMessage(data.toArray, data.length)) match {
         case Success(msg: MAVLinkMessage) =>
