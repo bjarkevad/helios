@@ -2,9 +2,10 @@ package helios.core.actors
 
 import akka.actor.{Props, ActorRef, Actor}
 import org.slf4j.LoggerFactory
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
+import helios.core.actors.uart.DataMessages.WriteMAVLink
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.flightcontroller.MAVLinkUART
+import helios.core.actors.uart.MAVLinkUART
+import helios.core.actors.CoreMessages.NotAllowed
 
 object ClientHandler {
   def props(client: ActorRef, uart: ActorRef): Props =
@@ -17,29 +18,19 @@ class ClientHandler(client: ActorRef, uart: ActorRef) extends Actor {
 
   lazy val logger = LoggerFactory.getLogger(classOf[ClientHandler])
 
-  override def preStart() = {
-    //client ! Registered(client)
-    logger.debug("Started")
-  }
-
-  override def postStop() = {
-  }
-
   def receive: Actor.Receive = {
     case m@WriteMAVLink(msg) =>
-      //logger.debug(s"received MAVLink: $msg")//Write to UART
-      //mlHandler.handle(msg)
       uart ! m
 
     case m@PublishMAVLink(msg) =>
       if(sender != client)
         client ! m
 
-    case MAVLinkUART.NotAllowed(msg) =>
+    case NotAllowed(msg) =>
       logger.warn(s"Tried to write $msg with insufficient permissions")
 
     case m@_ =>
-      logger.warn(s"Received something unknown $m")
+      if(sender != client)
+        client ! m
   }
-
 }

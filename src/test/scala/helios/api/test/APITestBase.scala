@@ -7,13 +7,13 @@ import helios.api.{HeliosRemote, HeliosApplication, HeliosAPI}
 import scala.concurrent.{Await, Awaitable, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import helios.core.actors.HeliosAPIDefault
 import org.mavlink.messages.common.{msg_attitude, msg_heartbeat}
 import org.mavlink.messages._
 import scala.concurrent.ExecutionContext.Implicits.global
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosRemote.RegisterAPIClient
 import helios.api.HeliosAPI._
+import helios.core.HeliosAPIDefault
 
 
 abstract class APITestBase extends TestKit(ActorSystem("APITest"))

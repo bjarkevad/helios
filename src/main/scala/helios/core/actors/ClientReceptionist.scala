@@ -6,15 +6,16 @@ import akka.actor.SupervisorStrategy._
 import language.postfixOps
 import concurrent.duration._
 
-import helios.core.actors.flightcontroller.FlightControllerMessages.WriteMAVLink
-import helios.core.actors.flightcontroller.MAVLinkUART.SetPrimary
+import helios.core.actors.uart.DataMessages.WriteMAVLink
 import helios.api.HeliosAPI
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.api.HeliosRemote.RegisterAPIClient
 
 import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
-import helios.core.actors.flightcontroller.MAVLinkUART
+import helios.core.HeliosAPIDefault
+import org.mavlink.messages.MAVLinkMessage
+import helios.util.Subscribers.Subscribers
 
 object ClientReceptionist {
   def props(uartProps: Props, groundControlProps: Props, muxUartProps: Props): Props =
@@ -42,16 +43,14 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       Restart
   }
 
-
   val uart = context.actorOf(uartProps, "UART")
   val muxUart = context.actorOf(muxUartProps, "MuxUART")
   val groundControl = context.actorOf(groundControlProps, "GroundControl")
 
-  def updateSubscriptions {
-    logger.debug(s"UpdateSubscriptions count: ${clients.keys.toSet.size}")
-    uart ! MAVLinkUART.SetSubscribers(clients.keys.toSet)
-    muxUart ! MAVLinkUART.SetSubscribers(clients.keys.toSet)
-    groundControl ! MAVLinkUART.SetSubscribers(clients.keys.toSet)
+  def updateSubscriptions() {
+    uart ! SetSubscribers(clients.keys.toSet)
+    muxUart ! SetSubscribers(clients.keys.toSet)
+    groundControl ! SetSubscribers(clients.keys.toSet)
   }
 
   //TODO: fix supervision strategy for UARTS
@@ -122,8 +121,6 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
 
 object CoreMessages {
 
-  //  import SubscriptionTypes._
-
   trait Request
 
   trait Response
@@ -138,21 +135,9 @@ object CoreMessages {
 
   case class Unregistered() extends Response
 
-  case class NotRegistered(client: ActorRef) extends Response
+  case class SetPrimary(newPrimary: ActorRef) extends Response
 
-  //  case class Subscribe(subType: SubscriptionType) extends Request
-  //
-  //  case class Unsubscribe(subType: SubscriptionType) extends Request
+  case class NotAllowed(msg: MAVLinkMessage) extends Response
 
-  case class NotAllowed() extends Response
-
+  case class SetSubscribers(subscribers: Subscribers) extends Response
 }
-
-////TODO: Remove or what?
-//object SubscriptionTypes {
-//
-//  trait SubscriptionType
-//
-//  case class SystemStatus() extends SubscriptionType
-//
-//}
