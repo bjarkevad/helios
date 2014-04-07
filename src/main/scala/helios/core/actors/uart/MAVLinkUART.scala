@@ -45,7 +45,6 @@ class MAVLinkUART(uartManager: ActorRef, settings: SerialSettings)(implicit mlPr
 with Stash {
 
   import MAVLinkUART._
-
   lazy val logger = LoggerFactory.getLogger(classOf[MAVLinkUART])
 
   lazy val mlReader = new MAVLinkReader(0xFE.toByte)
