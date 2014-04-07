@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import helios.core.actors.CoreMessages._
 import helios.mavlink.MAVLink.convertToMAVLink
+import helios.core.actors.uart.DataMessages.WriteMAVLink
 
 object GroundControlUDP {
   def props(udpManager: ActorRef, address: InetSocketAddress): Props = Props(new GroundControlUDP(udpManager, address))
@@ -47,19 +48,19 @@ class GroundControlUDP(udpManager: ActorRef, address: InetSocketAddress) extends
 
   def awaitingRegistration(connection: ActorRef): Receive = {
     case Registered(handler) =>
-      context become registered(connection)
+      context become registered(connection, handler)
       unstashAll() //Unstash from unbound & awaitingRegistration at once
 
     case _ =>
       stash()
   }
 
-  def registered(connection: ActorRef, subscribers: Subscribers = NoSubscribers): Receive = {
+  def registered(connection: ActorRef, handler: ActorRef): Receive = {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {
         case Success(m: MAVLinkMessage) =>
           m.componentId = 1
-          subscribers ! PublishMAVLink(m)
+          handler ! PublishMAVLink(m)
 
         case Failure(e: Throwable) =>
           logger.warn(s"received an unknown message over UDP")
@@ -68,19 +69,17 @@ class GroundControlUDP(udpManager: ActorRef, address: InetSocketAddress) extends
     case msg@UdpConnected.CommandFailed(cmd) =>
       connection ! cmd
 
-    case msg@PublishMAVLink(ml) =>
+    case msg@WriteMAVLink(ml) =>
       connection ! UdpConnected.Send(ByteString(ml.encode()))
 
     case d@UdpConnected.Disconnect =>
       connection ! d
 
     case UdpConnected.Disconnected =>
-      self ! PoisonPill
+      context stop self
 
-    case SetSubscribers(subs) =>
-      context become registered(connection, subs)
-
-    case m@_ => logger.debug(s"received something unexpected: $m")
+    case m@_ =>
+      logger.debug(s"Received something unhandled: $m")
   }
 
 }

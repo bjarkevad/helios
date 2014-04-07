@@ -14,7 +14,6 @@ import org.mavlink.messages.common._
 import rx.lang.scala.Observable
 import java.lang.System.currentTimeMillis
 import com.github.jodersky.flow.Serial
-import akka.util.ByteString
 
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val uart: ActorRef, val muxUart: ActorRef, val systemID: Int) extends HeliosAPI
 with TypedActor.PreStart
