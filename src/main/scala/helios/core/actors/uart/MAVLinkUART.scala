@@ -38,7 +38,6 @@ class MAVLinkUART(uartManager: ActorRef, settings: SerialSettings)
   extends Actor
   with Stash {
 
-
   lazy val logger = LoggerFactory.getLogger(classOf[MAVLinkUART])
 
   lazy val mlReader = new MAVLinkReader(0xFE.toByte)

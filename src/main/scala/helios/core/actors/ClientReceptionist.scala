@@ -66,7 +66,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
 
   def defaultReceive: Receive = {
     case RegisterClient(c) =>
-      val ch = context.actorOf(ClientHandler.props(c, uart))
+      val ch = context.actorOf(ClientHandler.props(c))
 
       if (clients.isEmpty)
         uart ! SetPrimary(ch)
@@ -74,7 +74,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
       clients put(ch, c)
 
       c ! Registered(ch)
-      updateSubscriptions
+      updateSubscriptions()
 
     case UnregisterClient(c) if clients contains c =>
       clients remove c

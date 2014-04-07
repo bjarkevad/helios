@@ -11,7 +11,8 @@ import helios.core.actors.CoreMessages.SetSubscribers
 import helios.core.actors.uart.DataMessages.WriteData
 
 object GenericUART {
-  def props(uartManager: ActorRef, settings: SerialSettings): Props = Props(new GenericUART(uartManager, settings))
+  def props(uartManager: ActorRef, settings: SerialSettings): Props =
+    Props(new GenericUART(uartManager, settings))
 }
 
 class GenericUART(uartManager: ActorRef, settings: SerialSettings) extends Actor {
