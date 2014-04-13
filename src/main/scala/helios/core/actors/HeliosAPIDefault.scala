@@ -243,6 +243,7 @@ with TypedActor.Receiver {
     else CommandFailure(new Exception(cannotMsg("arm motors", sysStatus)))
   }
 
+//TODO: make this return only when sensors are calibrated
   override def calibrateSensors: Future[CommandResult] = Future {
     if (hasFlags(sysStatus, MAV_MODE.MAV_MODE_PREFLIGHT)) {
       val cmd = new msg_command_long(systemID, 0)
