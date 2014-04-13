@@ -222,6 +222,7 @@ with TypedActor.Receiver {
     uart ! WriteMAVLink(msg)
   }
 
+//TODO: Check for correct systemstatus from hardware before returning CommandSuccess()
   override def disarmMotors: Future[CommandResult] = Future {
     if (hasFlags(sysStatus, MAV_MODE_FLAG.MAV_MODE_FLAG_SAFETY_ARMED)) {
       val msg = new msg_set_mode(systemID, 0)
