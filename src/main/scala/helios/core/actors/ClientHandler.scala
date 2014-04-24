@@ -12,6 +12,7 @@ object ClientHandler {
 }
 
 //TODO: Rename UART?? Move?? 
+//TODO: Turn into client supervisor?
 class ClientHandler(client: ActorRef, uart: ActorRef) extends Actor {
 
   lazy val logger = LoggerFactory.getLogger(classOf[ClientHandler])
