@@ -11,6 +11,7 @@ object ClientHandler {
     Props(new ClientHandler(client, uart))
 }
 
+//TODO: Rename UART?? Move?? 
 class ClientHandler(client: ActorRef, uart: ActorRef) extends Actor {
 
   lazy val logger = LoggerFactory.getLogger(classOf[ClientHandler])
