@@ -17,10 +17,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import org.mavlink.MAVLinkReader
 
 import helios.util.Subscribers._
-import helios.util.ByteConversions.formatData
 import helios.core.actors.CoreMessages.{SetPrimary, NotAllowed, SetSubscribers, RegisterClient}
 import helios.util.Privileged.PrivilegedLike
 
+/**
+ * Factory object for props
+ */
 object MAVLinkUART {
   def props(uartManager: ActorRef, settings: SerialSettings): Props = {
     implicit val priv = helios.util.Privileged.PrivilegedLike.PrivilegedMAVLink
@@ -33,6 +35,13 @@ object MAVLinkUART {
   }
 }
 
+/**
+ * Actor used to communicate over a /dev/tty* device through MAVLink
+ *
+ * @param uartManager
+ * @param settings
+ * @param mlPriv
+ */
 class MAVLinkUART(uartManager: ActorRef, settings: SerialSettings)
                  (implicit mlPriv: PrivilegedLike[MAVLinkMessage])
   extends Actor

@@ -15,6 +15,10 @@ lazy val coreruntime = (project in file(".")).
   settings(assemblySettings: _*).
   dependsOn(api)
 
+//scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt")
+
+scalacOptions in (Compile, doc) ++= Seq("-doc-title", "Helios Core")
+
 test in assembly := {}
 
 mainClass in assembly := Some("helios.Main")
