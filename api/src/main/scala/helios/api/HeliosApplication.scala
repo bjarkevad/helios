@@ -55,7 +55,8 @@ object Handlers {
   private[api]
   var criticalHandler: () => Unit =
     () => println("System entered critical mode with no handler!")
-
+    
+  private[api]
   var emergencyHandler: () => Unit =
     () => println("System entered emergency mode with no handler!")
 
@@ -67,4 +68,3 @@ object Handlers {
       emergencyHandler = f
   }
 }
-
