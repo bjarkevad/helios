@@ -26,3 +26,8 @@ out/
 .history
 
 *.log
+
+lib/*.gif
+lib/*.png
+lib/*.js
+lib/*.css
