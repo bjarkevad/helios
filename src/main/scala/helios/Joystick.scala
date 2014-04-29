@@ -14,7 +14,6 @@ import scala.collection.mutable
 object Joystick {
 
   import helios.Spektrum.channelsImpls
-  import helios.Spektrum
 
   def joystickHandler(input: Byte)(implicit maxDeg: Int = 25): Option[(AttitudeDeg, Thrust)] = {
     val factor = maxDeg / 1000
@@ -32,7 +31,7 @@ object Joystick {
 
     Spektrum.parse(input.toInt) match {
       case Some(channels) =>
-        Some(attitude(channels), thrust(channels))
+        Some((attitude(channels), thrust(channels)))
       case None => None
     }
   }
