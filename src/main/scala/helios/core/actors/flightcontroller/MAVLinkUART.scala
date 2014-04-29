@@ -118,7 +118,7 @@ with Stash {
       sender ! NotAllowed(msg)
 
     case WriteMAVLink(msg) =>
-      //logger.debug(s"Writing MAVLink to UART: $msg from $sender")
+      logger.debug(s"Writing MAVLink to UART: $msg from $sender")
       operator ! Serial.Write(ByteString(msg.encode()))
 
     case PublishMAVLink(msg) =>

@@ -17,7 +17,8 @@ lazy val coreruntime = (project in file(".")).
 
 test in assembly := {}
 
-mainClass in assembly := Some("helios.Main")
+//mainClass in assembly := Some("helios.Main")
+mainClass in assembly := Some("helios.TestApp")
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) {
   (old) => {

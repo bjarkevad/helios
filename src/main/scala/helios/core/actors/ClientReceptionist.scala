@@ -109,9 +109,9 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
     case Terminated(`groundControl`) =>
       context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)
 
-    case Terminated(a) =>
-      clients remove a
+    case Terminated(a) if clients.contains(a) =>
       clients(a) ! Unregistered()
+      clients remove a
       updateSubscriptions
 
     case m@_ =>

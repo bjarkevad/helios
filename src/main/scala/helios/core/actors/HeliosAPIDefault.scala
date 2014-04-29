@@ -175,6 +175,7 @@ with TypedActor.Receiver {
 
   override def setAttitude(attitude: Attitude, thrust: Thrust): Future[CommandResult] = Future {
     val msg = new msg_set_roll_pitch_yaw_thrust(systemID, 1)
+    msg.thrust = thrust
 
     attitude match {
       case AttitudeDeg(r, p, y) =>
