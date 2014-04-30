@@ -83,7 +83,6 @@ with Stash {
       stash()
   }
 
-  //import HeliosUART.subscriberImpls
   def opened(operator: ActorRef, primary: ActorRef, subscribers: Set[ActorRef]): Receive = {
     case Serial.Received(data) =>
       Try(mlReader.getNextMessage(data.toArray, data.length)) match {

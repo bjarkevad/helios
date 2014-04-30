@@ -68,7 +68,6 @@ with TypedActor.PostStop {
       case _ =>
     }
   }
-
 }
 
 object HeliosLocal {
