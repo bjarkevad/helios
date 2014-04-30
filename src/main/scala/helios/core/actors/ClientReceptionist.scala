@@ -16,69 +16,58 @@ import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
 import helios.core.HeliosAPIDefault
 import org.mavlink.messages.MAVLinkMessage
 import helios.util.Subscribers.Subscribers
+import scala.collection.GenSetLike
 
 object ClientReceptionist {
-  def props(uartProps: Props, groundControlProps: Props, muxUartProps: Props): Props =
-    Props(new ClientReceptionist(uartProps, groundControlProps, muxUartProps))
+  val defaultStrategy =
+        OneForOneStrategy(maxNrOfRetries = 100,
+      withinTimeRange = 1 seconds,
+      loggingEnabled = true) {
+      case _: java.io.IOException => Restart
+      case _: PortInUseException => Restart
+      case _: NoSuchPortException => Stop
+      case _: NotImplementedError => Resume
+      case e => Restart
+    }
+
+  def props(clientProps: Iterable[(Props, String)], supervisorStrategy: SupervisorStrategy = defaultStrategy): Props =
+    Props(new ClientReceptionist(clientProps, supervisorStrategy))
 }
 
-class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartProps: Props) extends Actor {
+class ClientReceptionist(clientProps: Iterable[(Props, String)], supervisorStrategy: SupervisorStrategy) extends Actor {
 
   import CoreMessages._
-  import scala.collection.mutable
 
-  /** Contains a map from Handler to Client */
-  val clients: mutable.HashMap[ActorRef, ActorRef] = mutable.HashMap.empty
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
-  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 100,
-    withinTimeRange = 1 seconds,
-    loggingEnabled = true) {
-    case _: java.io.IOException => Restart
-    case _: PortInUseException => Restart
-    case _: NoSuchPortException => Stop
-    case _: NotImplementedError => Resume
-    case e =>
-      logger.warn("Unhandled supervisor event")
-      Restart
-  }
-
-  val uart = context.actorOf(uartProps, "UART")
-  val muxUart = context.actorOf(muxUartProps, "MuxUART")
-  val groundControl = context.actorOf(groundControlProps, "GroundControl")
-
-  def updateSubscriptions() {
-    uart ! SetSubscribers(clients.keys.toSet)
-    muxUart ! SetSubscribers(clients.keys.toSet)
-    groundControl ! SetSubscribers(clients.keys.toSet)
-  }
-
   //TODO: fix supervision strategy for UARTS
-  context watch uart
-  context watch muxUart
-  context watch groundControl
+  override val supervisorStrategy = supervisorStrategy
+
+  val clients = clientProps.map(p => context watch context.actorOf(p._1, p._2))
+
+  def updateSubscriptions(activeClients: Iterable[ActorRef]) {
+    activeClients foreach(c => c ! SetSubscribers(activeClients.filter(!_.equals(c))))
+  }
 
   override def preStart() = {
     logger.debug(context.self.path.toString)
   }
 
-  def receive = defaultReceive(groundControlUnregistered = true) orElse terminator
+  def receive = defaultReceive()
 
-  def defaultReceive(groundControlUnregistered: Boolean): Receive = {
-    case RegisterClient(c) =>
-      val ch = context.actorOf(ClientHandler.props(c, uart))
+  //TODO: uart ! SetPrimary ???
+  def defaultReceive(activeClients: Set[ActorRef] = Set.empty): Receive = {
+    case RegisterClient() =>
+      val cs = sender
+      val ac = activeClients + cs
+      context become defaultReceive(ac)
+      cs ! Registered()
+      updateSubscriptions(ac)
 
-      if (clients.isEmpty)
-        uart ! SetPrimary(ch)
-
-      clients put(ch, c)
-
-      c ! Registered(ch)
-      updateSubscriptions()
-
-    case UnregisterClient(c) if clients contains c =>
-      clients remove c
-      sender ! Unregistered()
+    case UnregisterClient() if activeClients contains sender =>
+      val cs = sender
+      context become defaultReceive(activeClients - cs)
+      cs ! Unregistered()
 
     case RegisterAPIClient(c) =>
       val hd: HeliosAPI =
@@ -86,36 +75,18 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
           .typedActorOf(TypedProps(
           classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, c, uart, muxUart, 20)))
 
-      val ch = TypedActor(context.system).getActorRefFor(hd)
-
-      if (clients.isEmpty)
-        uart ! SetPrimary(ch)
-
-      clients put(TypedActor(context.system).getActorRefFor(hd), c)
+      val cs = TypedActor(context.system).getActorRefFor(hd)
+      val ac = activeClients + cs
+      context become defaultReceive(ac)
 
       sender ! hd
-      updateSubscriptions
+      updateSubscriptions(ac)
 
     case m@PublishMAVLink(ml) =>
-      clients.keys foreach (_ ! m)
+      logger.error("ClientReceptionist should not receive PublishMAVLink messages!!")
 
     case WriteMAVLink(m) =>
       logger.error("ClientReceptionist should not receive WriteMAVLink messages!!")
-
-  }
-
-  def terminator: Receive = {
-    case Terminated(`groundControl`) =>
-      context.become(defaultReceive(groundControlUnregistered = false) orElse terminator)
-
-    case Terminated(a) if clients.contains(a) =>
-      clients(a) ! Unregistered()
-      clients remove a
-      updateSubscriptions
-
-    case m@_ =>
-      logger.error(s"ClientReceptionist received: $m")
-    //sender ! NotRegistered(sender)
   }
 }
 
@@ -125,11 +96,11 @@ object CoreMessages {
 
   trait Response
 
-  case class RegisterClient(client: ActorRef) extends Request
+  case class RegisterClient() extends Request
 
-  case class UnregisterClient(client: ActorRef) extends Request
+  case class UnregisterClient() extends Request
 
-  case class Registered(client: ActorRef) extends Response
+  case class Registered() extends Response
 
   case class RegisteredAPI(helios: HeliosAPI) extends Response
 

@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 
 object Subscribers {
 
-  type Subscribers = Set[ActorRef]
+  type Subscribers = Iterable[ActorRef]
   lazy val NoSubscribers: Subscribers = Set.empty
 
   implicit class subscriberImpls(val subs: Subscribers) {
