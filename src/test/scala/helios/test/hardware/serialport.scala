@@ -12,11 +12,11 @@ import org.mavlink.messages.common.msg_heartbeat
 import com.github.jodersky.flow.SerialSettings
 import helios.mavlink.MAVLink.convertToMAVLink
 import scala.util.Success
-import helios.core.actors.uart.MAVLinkUART
 import helios.core.actors.uart.DataMessages.{WriteMAVLink, WriteData}
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import helios.core.actors.flightcontroller.MAVLinkUART
 
 @Ignore
 class serialport extends TestKit(ActorSystem("SerialPort"))

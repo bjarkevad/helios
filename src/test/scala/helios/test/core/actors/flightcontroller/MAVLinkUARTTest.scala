@@ -9,7 +9,6 @@ import akka.actor._
 import scala.language.postfixOps
 import scala.concurrent.duration._
 
-import helios.core.actors.uart.MAVLinkUART
 import akka.util.ByteString
 import org.mavlink.messages._
 import org.mavlink.messages.common._
@@ -22,6 +21,7 @@ import com.github.jodersky.flow.Serial.Received
 import helios.core.actors.uart.DataMessages.WriteAck
 import helios.util.Privileged.PrivilegedLike
 import helios.core.actors.CoreMessages._
+import helios.core.actors.flightcontroller.MAVLinkUART
 
 class MAVLinkUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike

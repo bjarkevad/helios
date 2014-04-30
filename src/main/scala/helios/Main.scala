@@ -2,12 +2,13 @@ package helios
 
 import akka.actor.{ActorRef, Props, ActorSystem}
 import helios.core.actors.ClientReceptionist
-import helios.core.actors.uart.{GenericUART, MAVLinkUART, MockSerial}
+import helios.core.actors.uart.{GenericUART, MockSerial}
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import java.net.InetSocketAddress
 import helios.core.actors.groundcontrol.GroundControlUDP
 import helios.HeliosConfig.{MAVLink, Generic}
+import helios.core.actors.flightcontroller.MAVLinkUART
 
 object Main extends App {
   def HeliosInit(implicit system: ActorSystem): ActorRef = {

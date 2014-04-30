@@ -4,7 +4,6 @@ import akka.actor._
 import akka.util.ByteString
 import scala.util.{Try, Success}
 
-import helios.core.actors.flightcontroller.FlightControllerMessages._
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
 
 import com.github.jodersky.flow.{NoSuchPortException, Serial, SerialSettings}
@@ -19,6 +18,7 @@ import org.mavlink.MAVLinkReader
 import helios.util.Subscribers._
 import helios.core.actors.CoreMessages.RegisterClient
 import helios.util.Privileged.PrivilegedLike
+import helios.core.actors.uart.DataMessages.{WriteMAVLink, WriteAck, WriteData}
 
 object MAVLinkUART {
   def props(uartManager: ActorRef, settings: SerialSettings): Props = {
@@ -110,7 +110,7 @@ with Stash {
 
     case WriteAck(data) =>
       //TODO
-      logger.debug(s"WriteAck(${formatData(data)}))")
+      //logger.debug(s"WriteAck(${formatData(data)}))")
 
     case WriteMAVLink(msg) if mlPriv.isPrivileged(msg) && sender != primary =>
       logger.debug(s"Sender: $sender, was not primary: $primary")

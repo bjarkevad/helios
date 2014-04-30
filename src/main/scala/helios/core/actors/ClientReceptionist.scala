@@ -66,7 +66,7 @@ class ClientReceptionist(uartProps: Props, groundControlProps: Props, muxUartPro
 
   def defaultReceive(groundControlUnregistered: Boolean): Receive = {
     case RegisterClient(c) =>
-      val ch = context.actorOf(ClientHandler.props(c))
+      val ch = context.actorOf(ClientHandler.props(c, uart))
 
       if (clients.isEmpty)
         uart ! SetPrimary(ch)

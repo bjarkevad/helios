@@ -4,7 +4,6 @@ import akka.actor.{Props, ActorRef, Actor}
 import org.slf4j.LoggerFactory
 import helios.core.actors.uart.DataMessages.WriteMAVLink
 import helios.api.messages.MAVLinkMessages.PublishMAVLink
-import helios.core.actors.uart.MAVLinkUART
 import helios.core.actors.CoreMessages.NotAllowed
 
 object ClientHandler {
