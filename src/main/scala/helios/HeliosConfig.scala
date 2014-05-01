@@ -16,9 +16,16 @@ object HeliosConfig {
     val default = Try(ConfigFactory.load("helios"))
 
     //TODO: dafuq is this shit
-    any.map {
+    val config = any.map {
       a => default.map(a.withFallback(_)).getOrElse(a)
-    }.toOption
+    }
+
+    //Throws if config does not exist
+    config.failed.map(throw new Exception("Config does not exist, exiting.."))
+    //Throws if config is invalid
+    config.map(_.checkValid(ConfigFactory.defaultReference(), "helios"))
+
+    config.toOption
   }
 
   lazy val serialdevice: Option[String] = config.flatMap {

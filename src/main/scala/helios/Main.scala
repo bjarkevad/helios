@@ -69,7 +69,6 @@ object Main extends App {
       ClientReceptionist.props(uartProps, groundControlProps, muxUartProps), "receptionist")
   }
 
-
   implicit val system = ActorSystem("Main")
   HeliosInit
 }
