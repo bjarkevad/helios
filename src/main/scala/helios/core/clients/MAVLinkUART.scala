@@ -20,36 +20,36 @@ import Subscribers._
 import helios.messages.CoreMessages._
 import helios.util.Privileged.PrivilegedLike
 import helios.core.clients.DataMessages._
+import helios.core.clients.Clients._
 
 object MAVLinkUART {
-  def props(clientTypeFactory: ActorRef => ClientType, uartManager: ActorRef, settings: SerialSettings): Props = {
+  def props(clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings): Props = {
     implicit val priv = helios.util.Privileged.PrivilegedLike.PrivilegedMAVLink
-    Props(new MAVLinkUART(clientTypeFactory, uartManager, settings))
+    Props(new MAVLinkUART(clientTypeProvider, uartManager, settings))
   }
 
-  def props(clientTypeFactory: ActorRef => ClientType, uartManager: ActorRef, settings: SerialSettings, name: String): Props = {
+  def props(clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings, name: String): Props = {
     implicit val priv = helios.util.Privileged.PrivilegedLike.PrivilegedMAVLink
-    Props(new MAVLinkUART(clientTypeFactory, uartManager, settings))
+    Props(new MAVLinkUART(clientTypeProvider, uartManager, settings))
   }
 }
 
-class MAVLinkUART(clientTypeFactory: ActorRef => ClientType, uartManager: ActorRef, settings: SerialSettings)
-                 (implicit mlPriv: PrivilegedLike[MAVLinkMessage]) extends Actor with Stash {
+class MAVLinkUART(val clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings)
+                 (implicit mlPriv: PrivilegedLike[MAVLinkMessage]) extends Client with Stash {
 
   lazy val logger = LoggerFactory.getLogger(classOf[MAVLinkUART])
 
   lazy val mlReader = new MAVLinkReader(0xFE.toByte)
 
   override def preStart() = {
-    context.parent ! RegisterClient(clientTypeFactory(self))
     uartManager ! Serial.Open(settings)
   }
 
   override def postStop() = {
+    context.parent ! UnregisterClient(clientType)
   }
 
   override def receive: Receive = default
-
 
   def default: Receive = {
     case Serial.CommandFailed(cmd, reason) =>
@@ -64,9 +64,13 @@ class MAVLinkUART(clientTypeFactory: ActorRef => ClientType, uartManager: ActorR
 
     case Serial.Opened(set, operator) =>
       logger.debug(s"Serial port opened with settings: $set")
+
       context become opened(operator, context.parent, Set.empty)
       context watch operator
+
+      context.parent ! RegisterClient(clientType)
       operator ! Serial.Register(self)
+
       unstashAll()
 
     case _: SetSubscribers =>

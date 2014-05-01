@@ -1,7 +1,7 @@
 package helios
 
 import akka.actor.{ActorRef, Props, ActorSystem}
-import helios.core.clients.{GenericUART, MockSerial}
+import helios.core.clients.GenericUART
 import akka.io.{UdpConnected, IO}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import java.net.InetSocketAddress

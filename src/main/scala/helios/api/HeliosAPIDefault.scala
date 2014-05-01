@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import org.slf4j.LoggerFactory
 import helios.api.HeliosAPI._
 import helios.api.HeliosRemote._
-import helios.messages.DataMessages.{UartData, PublishMAVLink}
+import helios.messages.DataMessages.{UARTData, PublishMAVLink}
 import org.mavlink.messages._
 import org.mavlink.messages.common._
 import rx.lang.scala.Observable
@@ -14,6 +14,7 @@ import com.github.jodersky.flow.Serial
 import helios.messages.CoreMessages._
 import helios.types.Subscribers.{Subscribers, NoSubscribers, subscriberImpls}
 import helios.core.clients.DataMessages._
+import helios.types.ClientTypes._
 
 //TODO: Supervise client!
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val systemID: Int) extends HeliosAPI
@@ -40,18 +41,11 @@ with TypedActor.Receiver {
   var allSubscribers: Subscribers = NoSubscribers
 
   def updateSubscribers(subs: Subscribers): Unit = {
-    flightcontrollers = filterFlightcontrollers(subs)
-    serialports = filterSerialports(subs)
-    groundcontrols = filterGroundControls(subs)
+    flightcontrollers = filterFlightControllers(subs).toSet
+    serialports = filterSerialPorts(subs).toSet
+    groundcontrols = filterGroundControls(subs).toSet
     allSubscribers = subs
   }
-
-  def filterFlightcontrollers(subscribers: Subscribers): Subscribers =
-    subscribers.filter(_.isInstanceOf[FlightController])
-  def filterSerialports(subscribers: Subscribers): Subscribers =
-    subscribers.filter(_.isInstanceOf[SerialPort])
-  def filterGroundControls(subscribers: Subscribers): Subscribers =
-    subscribers.filter(_.isInstanceOf[GroundControl])
 
   override def preStart() = {
     context watch client
@@ -107,7 +101,7 @@ with TypedActor.Receiver {
         }
 
       case Serial.Received(data) =>
-        client ! UartData(data)
+        client ! UARTData(data)
 
       case Terminated(`client`) =>
         logger.warn("Client was terminated, killing self")

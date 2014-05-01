@@ -1,7 +1,7 @@
 package helios.types
 
 import akka.actor.ActorRef
-import helios.messages.CoreMessages.ClientType
+import helios.types.ClientTypes.ClientType
 
 object Subscribers {
 

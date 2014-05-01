@@ -15,7 +15,7 @@ import helios.messages.DataMessages.PublishMAVLink
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import helios.core.clients.MAVLinkUART
-import helios.messages.CoreMessages.{SerialPort, ClientType}
+import helios.types.ClientTypes._
 
 @Ignore
 class serialport extends TestKit(ActorSystem("SerialPort"))

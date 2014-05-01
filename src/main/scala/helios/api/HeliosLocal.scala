@@ -6,9 +6,10 @@ import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
 import scala.language.postfixOps
-import helios.messages.DataMessages.{UartData, PublishMAVLink}
-import helios.messages.CoreMessages.{API, RegisterAPIClient}
+import helios.messages.DataMessages.{UARTData, PublishMAVLink}
+import helios.messages.CoreMessages.RegisterAPIClient
 import scala.concurrent.duration._
+import helios.types.ClientTypes.API
 
 class HeliosLocal(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
@@ -62,7 +63,7 @@ with TypedActor.PostStop {
       case m: AttitudeRad =>
         attStream onNext m
 
-      case UartData(data) =>
+      case UARTData(data) =>
         uStream onNext data
 
       case _ =>

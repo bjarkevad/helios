@@ -18,11 +18,11 @@ import helios.core.clients.MAVLinkUART
 import helios.messages.CoreMessages._
 import helios.messages.CoreMessages.RegisterClient
 import helios.messages.DataMessages.PublishMAVLink
-import helios.messages.CoreMessages.FlightController
 import com.github.jodersky.flow.SerialSettings
 import helios.core.clients.DataMessages.WriteMAVLink
 import com.github.jodersky.flow.Serial.Received
 import helios.messages.CoreMessages.SetSubscribers
+import helios.types.ClientTypes.{FlightController, ClientType}
 
 class MAVLinkUARTTest extends TestKit(ActorSystem("SerialPort"))
 with FlatSpecLike
@@ -72,7 +72,7 @@ with ImplicitSender {
     hu
   }
 
-  "HeliosUART" should "Open and register" in {
+  "MAVLinkUART" should "Open and register" in {
     //internal.InternalSerial.debug(true)
     initUART
   }

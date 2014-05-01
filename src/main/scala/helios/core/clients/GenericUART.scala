@@ -7,19 +7,19 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
-import helios.messages.CoreMessages.SetSubscribers
-import Clients.{ClientTypeFactory, Client}
+import helios.messages.CoreMessages.{UnregisterClient, RegisterClient, SetSubscribers}
+import Clients.{ClientTypeProvider, Client}
 import helios.types.Subscribers
 import helios.core.clients.DataMessages.WriteData
 
 object GenericUART {
-  def props(clientTypeFactory: ClientTypeFactory, uartManager: ActorRef, settings: SerialSettings): Props =
-    Props(new GenericUART(clientTypeFactory, uartManager, settings))
+  def props(clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings): Props =
+    Props(new GenericUART(clientTypeProvider, uartManager, settings))
 }
 
 //TODO: Register
-class GenericUART(clientTypeFactory: ClientTypeFactory, uartManager: ActorRef, settings: SerialSettings)
-  extends Client(clientTypeFactory) {
+class GenericUART(val clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings)
+  extends Client {
 
   import Subscribers._
 
@@ -27,6 +27,10 @@ class GenericUART(clientTypeFactory: ClientTypeFactory, uartManager: ActorRef, s
 
   override def preStart() = {
     uartManager ! Serial.Open(settings)
+  }
+
+  override def postStop() = {
+    context.parent ! UnregisterClient(clientType)
   }
 
   override def receive: Receive = default
@@ -44,6 +48,7 @@ class GenericUART(clientTypeFactory: ClientTypeFactory, uartManager: ActorRef, s
       logger.debug(s"Serial port opened with settings: $set and parent: ${context.parent}")
       context become opened(operator)
       context watch operator
+      context.parent ! RegisterClient(clientType)
       operator ! Serial.Register(self)
   }
 

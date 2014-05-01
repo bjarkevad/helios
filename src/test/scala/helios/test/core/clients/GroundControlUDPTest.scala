@@ -12,8 +12,9 @@ import akka.util.ByteString
 import org.mavlink.messages.common.msg_heartbeat
 import org.mavlink.messages._
 import helios.messages.DataMessages.PublishMAVLink
-import helios.messages.CoreMessages.{Registered, ClientType, GroundControl}
+import helios.messages.CoreMessages.Registered
 import helios.core.clients.GroundControlUDP
+import helios.types.ClientTypes._
 
 class GroundControlUDPTest extends TestKit(ActorSystem("GroundControlTest"))
 with FlatSpecLike

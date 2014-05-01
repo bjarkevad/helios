@@ -6,5 +6,5 @@ import akka.util.ByteString
 
 object DataMessages {
   case class PublishMAVLink(message: MAVLinkMessage)
-  case class UartData(data: ByteString)
+  case class UARTData(data: ByteString)
 }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
 import helios.types.Subscribers.Subscribers
 import helios.core.clients.DataMessages.WriteMAVLink
+import helios.types.ClientTypes.ClientType
 
 object ClientReceptionist {
   //TODO: fix supervision strategy for UARTs
@@ -37,6 +38,10 @@ class ClientReceptionist(clientProps: Iterable[(Props, String)], override val su
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
   val clients = clientProps.map(p => context watch context.actorOf(p._1, p._2))
+
+  def flightcontrollers(clients: Set[ClientType] = Set.empty) = {
+    clients
+  }
 
   def updateSubscriptions(activeClients: Subscribers) {
     activeClients foreach(c => c.client ! SetSubscribers(activeClients.filter(!_.equals(c))))

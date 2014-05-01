@@ -6,8 +6,9 @@ import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
 import scala.util.{Success, Failure, Try}
-import helios.messages.DataMessages.{UartData, PublishMAVLink}
-import helios.messages.CoreMessages.{API, RegisterAPIClient}
+import helios.messages.DataMessages.{UARTData, PublishMAVLink}
+import helios.messages.CoreMessages.RegisterAPIClient
+import helios.types.ClientTypes.API
 
 class HeliosRemote(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
@@ -74,7 +75,7 @@ with TypedActor.PostStop {
       case m: AttitudeRad =>
         attStream onNext m
 
-      case UartData(data) =>
+      case UARTData(data) =>
         uStream onNext data
 
       case _ =>

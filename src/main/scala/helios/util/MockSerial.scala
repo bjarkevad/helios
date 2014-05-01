@@ -1,4 +1,4 @@
-package helios.core.clients
+package helios.util
 
 import akka.actor.{ActorRef, Props, Actor}
 import org.slf4j.LoggerFactory
@@ -7,7 +7,6 @@ import org.mavlink.messages.common._
 import org.mavlink.messages._
 import helios.util.mavlink.MAVLink.convertToMAVLink
 import akka.util.ByteString
-import helios.messages.DataMessages.PublishMAVLink
 
 object MockSerial {
   def props = Props(new MockSerial)

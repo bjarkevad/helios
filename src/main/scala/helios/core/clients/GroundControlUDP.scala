@@ -11,18 +11,18 @@ import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
 import helios.messages.DataMessages.PublishMAVLink
 import helios.util.mavlink.MAVLink.convertToMAVLink
-import helios.messages.CoreMessages.{Registered, RegisterClient}
+import helios.messages.CoreMessages.{UnregisterClient, Registered, RegisterClient}
 import Clients._
 import helios.types.Subscribers
 import helios.core.clients.DataMessages.WriteMAVLink
 
 object GroundControlUDP {
-  def props(clientTypeFactory: ClientTypeFactory, udpManager: ActorRef, address: InetSocketAddress): Props =
-    Props(new GroundControlUDP(clientTypeFactory, udpManager, address))
+  def props(clientTypeProvider: ClientTypeProvider, udpManager: ActorRef, address: InetSocketAddress): Props =
+    Props(new GroundControlUDP(clientTypeProvider, udpManager, address))
 }
 
-class GroundControlUDP(clientTypeFactory: ClientTypeFactory, udpManager: ActorRef, address: InetSocketAddress)
-  extends Client(clientTypeFactory) with Stash {
+class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: ActorRef, address: InetSocketAddress)
+  extends Client with Stash {
 
   import language.postfixOps
   import Subscribers._
@@ -34,16 +34,20 @@ class GroundControlUDP(clientTypeFactory: ClientTypeFactory, udpManager: ActorRe
     udpManager ! UdpConnected.Connect(self, address)
   }
 
+  override def postStop() = {
+    context.parent ! UnregisterClient(clientType)
+  }
+
   override def receive: Receive = unbound()
 
   def publishTargets(subscribers: Subscribers): Subscribers = {
-    ???
+    subscribers
   }
 
   def unbound(connection: Option[ActorRef] = None): Receive = {
     case UdpConnected.Connected =>
       val connection = sender
-      context.parent ! RegisterClient(clientTypeFactory(self))
+      context.parent ! RegisterClient(clientType)
       context become awaitingRegistration(connection)
 
     case UdpConnected.CommandFailed(cmd: UdpConnected.Connect) =>
