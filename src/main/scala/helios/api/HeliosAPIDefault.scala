@@ -4,7 +4,6 @@ import akka.actor._
 import scala.concurrent.Future
 import org.slf4j.LoggerFactory
 import helios.api.HeliosAPI._
-import helios.api.HeliosRemote._
 import helios.messages.DataMessages.{UARTData, PublishMAVLink}
 import org.mavlink.messages._
 import org.mavlink.messages.common._
@@ -12,9 +11,10 @@ import rx.lang.scala.Observable
 import java.lang.System.currentTimeMillis
 import com.github.jodersky.flow.Serial
 import helios.messages.CoreMessages._
-import helios.types.Subscribers.{Subscribers, NoSubscribers, subscriberImpls}
+import helios.types.Subscribers.{Subscribers, NoSubscribers}
 import helios.core.clients.DataMessages._
 import helios.types.ClientTypes._
+import helios.types.Subscribers.subscriberImpls
 
 //TODO: Supervise client!
 class HeliosAPIDefault(val name: String, val clientReceptionist: ActorRef, val client: ActorRef, val systemID: Int) extends HeliosAPI
@@ -41,9 +41,9 @@ with TypedActor.Receiver {
   var allSubscribers: Subscribers = NoSubscribers
 
   def updateSubscribers(subs: Subscribers): Unit = {
-    flightcontrollers = filterFlightControllers(subs).toSet
-    serialports = filterSerialPorts(subs).toSet
-    groundcontrols = filterGroundControls(subs).toSet
+    flightcontrollers = subs.filterTypes[FlightController].toSet
+    serialports = subs.filterTypes[SerialPort].toSet
+    groundcontrols = subs.filterTypes[GroundControl].toSet
     allSubscribers = subs
   }
 

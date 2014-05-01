@@ -1,6 +1,7 @@
 package helios.types
 
 import akka.actor.ActorRef
+import scala.reflect.ClassTag
 
 object ClientTypes {
   trait ClientType {
@@ -12,23 +13,12 @@ object ClientTypes {
   case class SerialPort(client: ActorRef) extends ClientType
   case class API(client: ActorRef) extends ClientType
 
-  def filterGenerics[A <: Iterable[ClientType]](clients: A): Iterable[ClientType] = {
-    clients.filter(_.isInstanceOf[Generic])
-  }
-
-  def filterFlightControllers[A <: Iterable[ClientType]](clients: A): Iterable[ClientType] = {
-    clients.filter(_.isInstanceOf[FlightController])
-  }
-
-  def filterGroundControls[A <: Iterable[ClientType]](clients: A): Iterable[ClientType] = {
-    clients.filter(_.isInstanceOf[GroundControl])
-  }
-
-  def filterSerialPorts[A <: Iterable[ClientType]](clients: A): Iterable[ClientType] = {
-    clients.filter(_.isInstanceOf[SerialPort])
-  }
-
-  def filterAPIs[A <: Iterable[ClientType]](clients: A): Iterable[ClientType] = {
-    clients.filter(_.isInstanceOf[API])
+  implicit class clientsImpls[B](clients: Iterable[B]) {
+    def filterTypes[T <: B: ClassTag]: Iterable[B] = {
+      clients.filter {
+        case x: T => true
+        case _ => false
+      }
+    }
   }
 }
