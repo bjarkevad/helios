@@ -1,22 +1,21 @@
 package helios.test.hardware
 
-import akka.actor.{ActorRef, Props, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestProbe, ImplicitSender, TestKit}
 import org.scalatest.{Ignore, BeforeAndAfter, Matchers, FlatSpecLike}
 import helios.util.nio.FileOps
 import akka.io.IO
-import com.github.jodersky.flow.{SerialSettings, Serial}
+import com.github.jodersky.flow.Serial
 import akka.util.ByteString
 import org.mavlink.messages._
 import org.mavlink.messages.common.msg_heartbeat
 import com.github.jodersky.flow.SerialSettings
-import helios.mavlink.MAVLink.convertToMAVLink
-import scala.util.Success
-import helios.core.actors.uart.DataMessages.{WriteMAVLink, WriteData}
-import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.core.clients.DataMessages.WriteMAVLink
+import helios.messages.DataMessages.PublishMAVLink
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import helios.core.actors.flightcontroller.MAVLinkUART
+import helios.core.clients.MAVLinkUART
+import helios.messages.CoreMessages.{SerialPort, ClientType}
 
 @Ignore
 class serialport extends TestKit(ActorSystem("SerialPort"))
@@ -43,8 +42,10 @@ with BeforeAndAfter {
     hb
   }
 
+  def ctf(a: ActorRef): ClientType = SerialPort(a)
+
   def heliosUart: ActorRef = {
-    val s = system.actorOf(MAVLinkUART.props(IO(Serial), settings))
+    val s = system.actorOf(MAVLinkUART.props(ctf, IO(Serial), settings))
     Thread.sleep(100)
     s
   }

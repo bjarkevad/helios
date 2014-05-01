@@ -5,10 +5,10 @@ import akka.pattern.ask
 import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
-import helios.api.HeliosRemote.{UartData, RegisterAPIClient}
-import scala.concurrent.duration._
 import scala.language.postfixOps
-import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.messages.DataMessages.{UartData, PublishMAVLink}
+import helios.messages.CoreMessages.{API, RegisterAPIClient}
+import scala.concurrent.duration._
 
 class HeliosLocal(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
@@ -19,7 +19,7 @@ with TypedActor.PostStop {
 
   override lazy val Helios: HeliosAPI = {
     Await.result(
-      ask(clientReceptionist, RegisterAPIClient(TypedActor.context.self))(3 seconds).mapTo[HeliosAPI],
+      ask(clientReceptionist, RegisterAPIClient(API(TypedActor.context.self)))(3 seconds).mapTo[HeliosAPI],
       4 seconds
     )
   }

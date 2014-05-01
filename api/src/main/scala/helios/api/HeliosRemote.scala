@@ -5,10 +5,9 @@ import akka.pattern.ask
 import scala.concurrent.Await
 import helios.api.HeliosAPI._
 import helios.api.HeliosAPI.SystemStatus
-import akka.util.ByteString
 import scala.util.{Success, Failure, Try}
-import helios.api.HeliosRemote.{UartData, RegisterAPIClient}
-import helios.api.messages.MAVLinkMessages.PublishMAVLink
+import helios.messages.DataMessages.{UartData, PublishMAVLink}
+import helios.messages.CoreMessages.{API, RegisterAPIClient}
 
 class HeliosRemote(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
@@ -23,7 +22,7 @@ with TypedActor.PostStop {
 
     def loop: HeliosAPI = {
       Try(Await.result(
-        ask(clientReceptionist, RegisterAPIClient(TypedActor.context.self))(3 seconds).mapTo[HeliosAPI],
+        ask(clientReceptionist, RegisterAPIClient(API(TypedActor.context.self)))(3 seconds).mapTo[HeliosAPI],
         4 seconds
       ))
       match {
@@ -103,18 +102,9 @@ object HeliosRemote {
   }
 
   //TODO: Used by tests, reconsider how this is done
-  private[api]
-  def apply(system: ActorSystem, path: ActorPath): HeliosApplication = {
-    val clientRecep = TypedActor(system).system.provider.resolveActorRef(path)
+  def apply(system: ActorSystem, receptionistPath: ActorPath): HeliosApplication = {
+    val clientRecep = TypedActor(system).system.provider.resolveActorRef(receptionistPath)
     TypedActor(system).typedActorOf(
       TypedProps(classOf[HeliosApplication], new HeliosRemote(clientRecep)))
   }
-
-  case class RegisterAPIClient(client: ActorRef)
-
-  case class UnregisterAPIClient(client: HeliosAPI)
-
-  case class UartData(data: ByteString)
-
 }
-
