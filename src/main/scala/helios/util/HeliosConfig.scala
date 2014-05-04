@@ -2,71 +2,107 @@ package helios.util
 
 import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}
-import java.net.InetSocketAddress
-import scala.util.Try
+import scala.util.{Try, Success}
+import helios.util.nio.FileOps
+import helios.types.ClientTypes._
+import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
+import helios.core.clients.Clients.ClientTypeProvider
+import helios.util.HeliosConfig._
 
 object HeliosConfig {
-  trait SerialType
-  case class MAVLink() extends SerialType
-  case class Generic() extends SerialType
 
+  case class SerialInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
+
+  case class FlightControllerInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
+
+  case class GroundControlInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
+
+  def apply(): HeliosConfig =
+    new HeliosConfig("./helios.conf")
+
+  def apply(configPath: String): HeliosConfig =
+    new HeliosConfig(configPath)
+}
+
+class HeliosConfig(configPath: String) {
   lazy val config: Option[Config] = {
-    val file = new File("./helios.conf")
-    val any = Try(ConfigFactory.parseFileAnySyntax(file))
-    val default = Try(ConfigFactory.load("helios"))
+    val file =
+      if (FileOps.exists(configPath))
+        new File(configPath)
+      else
+        throw new Exception(s"Config $configPath did not exist")
+
+    val any = Try(ConfigFactory.parseFileAnySyntax(file).getConfig("helios"))
+    val default = Try(ConfigFactory.load("helios").getConfig("helios"))
 
     //TODO: dafuq is this shit
     val config = any.map {
       a => default.map(a.withFallback(_)).getOrElse(a)
     }
 
-    //Throws if config does not exist
-    config.failed.map(throw new Exception("Config does not exist, exiting.."))
     //Throws if config is invalid
     config.map(_.checkValid(ConfigFactory.defaultReference(), "helios"))
 
     config.toOption
   }
 
-  lazy val serialdevice: Option[String] = config.flatMap {
-    c => Try(c.getString("helios.serial.device")).toOption
+
+  lazy val flightcontrollers: Seq[FlightControllerInfo] = {
+    Seq.empty
   }
 
-  lazy val serialBaudrate: Option[Int] = config.flatMap {
-    c => Try(c.getInt("helios.serial.baudrate")).toOption
+  lazy val groundcontrols: Seq[GroundControlInfo] = {
+    Seq.empty
   }
 
-  lazy val muxSerialDevice: Option[String] = config.flatMap {
-    c => Try(c.getString("helios.muxserial.device")).toOption
-  }
-  lazy val muxSerialBaudrate: Option[Int] = config.flatMap {
-    c => Try(c.getInt("helios.muxserial.baudrate")).toOption
-  }
-
-  lazy val muxSerialType: Option[SerialType] = config.flatMap {
-    c => Try(
-      c.getString("helios.muxserial.type").toLowerCase match {
-        case "mavlink" => MAVLink()
-        case "generic" => Generic()
+  lazy val serialports: Seq[SerialInfo] = {
+    import collection.JavaConverters._
+    config.map {
+      c => c.getStringList("serial").asScala.map {
+        v => {
+          serialDetails(v) match {
+            case (ctp, dev, baud) =>
+              SerialInfo(ctp,
+                dev,
+                baud
+              )
+          }
+        }
       }
-    ).toOption
+    }.getOrElse(List.empty)
   }
 
-  lazy val groundcontrolAddress: Option[InetSocketAddress] = {
-    val host: Option[String] = config.flatMap {
-      c =>
-        Try(c.getString("helios.groundcontrol.host"))
-          //.orElse(Try("localhost"))
-          .toOption
+
+  def serialDetails(line: String): (ClientTypeProvider, String, Int) = {
+    val split = line.split(' ').toList
+
+    val device: String = split.collectFirst {
+      case v if FileOps.exists(v) => v
+    }.getOrElse("/dev/null")
+
+    val baudrate: Int = Try(split.collectFirst {
+      case x => x.toInt
+    }).toOption.flatten.getOrElse(9600)
+
+    val deviceType = split.collectFirst {
+      case s if s != device && s != baudrate.toString => s
+    } match {
+      case Some("mavlink") => MAVLinkSerialPort
+      case _ => GenericSerialPort
     }
 
-   val port: Option[Int] = config.flatMap {
-      c =>
-        Try(c.getInt("helios.groundcontrol.port"))
-          //.orElse(Try(14550))
-          .toOption
-    }
-
-    Try(new InetSocketAddress(host.get, port.get)).toOption
+    (deviceType, device, baudrate)
   }
+
+  //  lazy val allClients: Seq[(Props, String)] = {
+  //    //    addNames(generics, "Generic") ++
+  //    //      addNames(flightcontrollers, "FlightController") ++
+  //    //      addNames(groundcontrols, "GroundControl") ++
+  //    //      addNames(serialports, "SerialPort")
+  //    ???
+  //  }
+
+  //  def addNames(props: Seq[Props], basename: String): Seq[(Props, String)] =
+  //    props.zipWithIndex.map(pn => (pn._1, basename + "-" + pn._2))
+
 }

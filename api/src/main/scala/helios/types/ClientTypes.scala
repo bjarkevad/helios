@@ -7,10 +7,10 @@ object ClientTypes {
   trait ClientType {
     val client: ActorRef
   }
-  case class Generic(client: ActorRef) extends ClientType
   case class FlightController(client: ActorRef) extends ClientType
   case class GroundControl(client: ActorRef) extends ClientType
-  case class SerialPort(client: ActorRef) extends ClientType
+  case class GenericSerialPort(client: ActorRef) extends ClientType
+  case class MAVLinkSerialPort(client: ActorRef) extends ClientType
   case class API(client: ActorRef) extends ClientType
 
   implicit class clientsImpls[B](clients: Iterable[B]) {

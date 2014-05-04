@@ -42,7 +42,7 @@ with TypedActor.Receiver {
 
   def updateSubscribers(subs: Subscribers): Unit = {
     flightcontrollers = subs.filterTypes[FlightController].toSet
-    serialports = subs.filterTypes[SerialPort].toSet
+    serialports = subs.filterTypes[GenericSerialPort].toSet ++ subs.filterTypes[MAVLinkSerialPort].toSet
     groundcontrols = subs.filterTypes[GroundControl].toSet
     allSubscribers = subs
   }
