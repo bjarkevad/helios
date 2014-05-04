@@ -85,6 +85,7 @@ class HeliosConfig(configPath: String) {
     )
   }
 
+  //TODO: merge f and pf
   /**
    * Reads settings out of config and converts them to it's respective info class
    * @param config the config to read
