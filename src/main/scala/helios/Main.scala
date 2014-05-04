@@ -4,66 +4,48 @@ import akka.actor.{Props, ActorRef, ActorSystem}
 import helios.util.HeliosConfig._
 import helios.util.HeliosConfig
 import helios.core.ClientReceptionist
+import helios.core.clients.{GroundControlUDP, MAVLinkUART}
+import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
+import akka.io.{UdpConnected, IO}
+import java.net.InetSocketAddress
 
 object Main extends App {
   def HeliosInit(implicit system: ActorSystem = ActorSystem("Main")): ActorRef = {
-    //
-    //    lazy val groundControlProps: Props = {
-    //
-    //      lazy val address: InetSocketAddress = {
-    //        HeliosConfig.groundcontrolAddress
-    //          .getOrElse(new InetSocketAddress("localhost", 14550))
-    //      }
-    //
-    //      GroundControlUDP.props(IO(UdpConnected), address)
-    //    }
-    //
-    //    lazy val uartProps: Props = {
-    //
-    //      lazy val uartManager: ActorRef = {
-    //        HeliosConfig.serialdevice match {
-    //          case Some("MOCK") => system.actorOf(MockSerial.props)
-    //          case Some(_) => IO(Serial)
-    //          case _ => system.actorOf(MockSerial.props)
-    //        }
-    //      }
-    //
-    //      lazy val settings: SerialSettings = {
-    //        SerialSettings(
-    //          HeliosConfig.serialdevice.getOrElse("/dev/ttyO2"),
-    //          HeliosConfig.serialBaudrate.getOrElse(115200),
-    //          8,
-    //          twoStopBits = false,
-    //          Parity.None
-    //        )
-    //      }
-    //
-    //      MAVLinkUART.props(uartManager, settings)
-    //    }
-    //
-    //    lazy val muxUartProps: Props = {
-    //      lazy val uartManager: ActorRef = IO(Serial)
-    //
-    //      lazy val settings: SerialSettings = {
-    //        SerialSettings(
-    //          HeliosConfig.muxSerialDevice.getOrElse("/dev/ttyO1"),
-    //          HeliosConfig.muxSerialBaudrate.getOrElse(115200),
-    //          8,
-    //          twoStopBits = false,
-    //          Parity.None
-    //        )
-    //      }
-    //      HeliosConfig.muxSerialType.getOrElse(Generic()) match {
-    //        case MAVLink() =>
-    //          MAVLinkUART.props(uartManager, settings)
-    //        case Generic() =>
-    //          GenericUART.props(uartManager, settings)
-    //      }
-    //    }
-    def fcProps(fcinfo: Seq[FlightControllerInfo]): Seq[(Props, String)] = ???
-    def serialProps(serialInfo: Seq[SerialInfo]): Seq[(Props, String)] = ???
-    def gcProps(groundControlInfo: Seq[GroundControlInfo]): Seq[(Props, String)] = ???
 
+    def fcProps(fcinfo: Seq[FlightControllerInfo]): Seq[(Props, String)] = {
+      fcinfo.zipWithIndex.map {
+        i =>
+          val fci = i._1
+          (MAVLinkUART.props(
+            fci.clientTypeProvider,
+            IO(Serial), SerialSettings(fci.device, fci.baudrate, 8, false, Parity.None)
+          ), s"FlightController-${i._2}")
+      }
+    }
+
+    def serialProps(serialInfo: Seq[SerialInfo]): Seq[(Props, String)] = {
+      serialInfo.zipWithIndex.map {
+        i =>
+          val si = i._1
+          //TODO: No generic UART???
+          (MAVLinkUART.props(
+            si.clientTypeProvider,
+            IO(Serial), SerialSettings(si.device, si.baudrate, 8, false, Parity.None)
+          ), s"SerialPort-${i._2}")
+      }
+    }
+
+    def gcProps(groundControlInfo: Seq[GroundControlInfo]): Seq[(Props, String)] = {
+      groundControlInfo.zipWithIndex.map {
+        i =>
+          val gci = i._1
+          (GroundControlUDP.props(
+            gci.clientTypeProvider,
+            IO(UdpConnected),
+            new InetSocketAddress(gci.address, gci.port)
+          ), s"GroundControl-${i._2}")
+      }
+    }
 
     val config = HeliosConfig()
 

@@ -2,10 +2,9 @@ package helios.util
 
 import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}
-import scala.util.{Try, Success}
+import scala.util.Try
 import helios.util.nio.FileOps
 import helios.types.ClientTypes._
-import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import helios.core.clients.Clients.ClientTypeProvider
 import helios.util.HeliosConfig._
 
@@ -15,7 +14,7 @@ object HeliosConfig {
 
   case class FlightControllerInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
 
-  case class GroundControlInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
+  case class GroundControlInfo(clientTypeProvider: ClientTypeProvider, address: String, port: Int)
 
   def apply(): HeliosConfig =
     new HeliosConfig("./helios.conf")
@@ -47,32 +46,65 @@ class HeliosConfig(configPath: String) {
   }
 
 
-  lazy val flightcontrollers: Seq[FlightControllerInfo] = {
-    Seq.empty
-  }
-
-  lazy val groundcontrols: Seq[GroundControlInfo] = {
-    Seq.empty
+  lazy val serialPf: PartialFunction[(ClientTypeProvider, String, Int), SerialInfo] = {
+    case (ctp, dev, baud) => SerialInfo(ctp, dev, baud)
   }
 
   lazy val serialports: Seq[SerialInfo] = {
-    import collection.JavaConverters._
-    config.map {
-      c => c.getStringList("serial").asScala.map {
-        v => {
-          serialDetails(v) match {
-            case (ctp, dev, baud) =>
-              SerialInfo(ctp,
-                dev,
-                baud
-              )
-          }
-        }
-      }
-    }.getOrElse(List.empty)
+    clientSettings(
+      config,
+      "serial",
+      serialDetails,
+      serialPf
+    )
   }
 
+  lazy val fcPf: PartialFunction[(ClientTypeProvider, String, Int), FlightControllerInfo] = {
+    case (_, dev, baud) => FlightControllerInfo(FlightController, dev, baud)
+  }
 
+  lazy val flightcontrollers: Seq[FlightControllerInfo] = {
+    clientSettings(
+      config,
+      "flightcontroller",
+      serialDetails,
+      fcPf
+    )
+  }
+
+  lazy val gcPf: PartialFunction[(ClientTypeProvider, String, Int), GroundControlInfo] = {
+    case (ctp, addr, port) => GroundControlInfo(ctp, addr, port)
+  }
+
+  lazy val groundcontrols: Seq[GroundControlInfo] = {
+    clientSettings(
+      config,
+      "groundcontrol",
+      gcDetails,
+      gcPf
+    )
+  }
+
+  /**
+   * Reads settings out of config and converts them to it's respective info class
+   * @param config the config to read
+   * @param configTag the config tag to look for in the config
+   * @param f turns the config string into it's components
+   * @param pf turns the components into it's respective info class
+   * @tparam A components type, usually tuple, triple, etc
+   * @tparam B info class type
+   * @return a sequence of info classes
+   */
+  def clientSettings[A, B](config: Option[Config], configTag: String, f: String => A, pf: PartialFunction[A, B]): Seq[B] = {
+    import collection.JavaConverters._
+    config.fold(Seq.empty: Seq[B]) {
+      _.getStringList(configTag).asScala.map {
+        v => pf(f(v))
+      }
+    }
+  }
+
+  //TODO: Add support for FC CTP
   def serialDetails(line: String): (ClientTypeProvider, String, Int) = {
     val split = line.split(' ').toList
 
@@ -94,15 +126,24 @@ class HeliosConfig(configPath: String) {
     (deviceType, device, baudrate)
   }
 
-  //  lazy val allClients: Seq[(Props, String)] = {
-  //    //    addNames(generics, "Generic") ++
-  //    //      addNames(flightcontrollers, "FlightController") ++
-  //    //      addNames(groundcontrols, "GroundControl") ++
-  //    //      addNames(serialports, "SerialPort")
-  //    ???
-  //  }
+  //TODO: Verify address and port
+  def gcDetails(line: String): (ClientTypeProvider, String, Int) = {
+    val default = ("localhost", 14550)
 
-  //  def addNames(props: Seq[Props], basename: String): Seq[(Props, String)] =
-  //    props.zipWithIndex.map(pn => (pn._1, basename + "-" + pn._2))
+    val split = line.split(' ').toList
 
+    val ap = split.find(_.contains(':')).getOrElse("")
+    //val tyype = split.find(!_.contains(':')).getOrElse("")
+
+    val addr: (String, Int) = {
+      ap.split(':').toList match {
+        case (a :: p :: xs) =>
+          (a, p.toInt)
+        case _ =>
+          default
+      }
+    }
+
+    (GroundControl, addr._1, addr._2)
+  }
 }

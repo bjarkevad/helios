@@ -22,6 +22,6 @@ class HeliosConfigTest extends FlatSpec with Matchers {
     val hc = HeliosConfig("./src/test/resources/helios.conf")
     val sp = hc.serialports
 
-    sp shouldNot be(List.empty)
+    sp.size should be(2)
   }
 }

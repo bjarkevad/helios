@@ -42,7 +42,7 @@ with BeforeAndAfter {
     hb
   }
 
-  def ctf(a: ActorRef): ClientType = SerialPort(a)
+  def ctf(a: ActorRef): ClientType = MAVLinkSerialPort(a)
 
   def heliosUart: ActorRef = {
     val s = system.actorOf(MAVLinkUART.props(ctf, IO(Serial), settings))

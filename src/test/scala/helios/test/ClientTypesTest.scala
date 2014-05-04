@@ -14,8 +14,8 @@ class ClientTypesTest extends FlatSpec with Matchers {
     GroundControl(ActorRef.noSender),
     API(ActorRef.noSender),
     FlightController(ActorRef.noSender),
-    Generic(ActorRef.noSender),
-    SerialPort(ActorRef.noSender)
+    GenericSerialPort(ActorRef.noSender),
+    MAVLinkSerialPort(ActorRef.noSender)
   )
 
   "ClientTypes" should "filterTypes" in {
