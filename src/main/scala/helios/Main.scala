@@ -10,6 +10,7 @@ import akka.io.{UdpConnected, IO}
 import java.net.InetSocketAddress
 
 object Main extends App {
+  //TODO: Wrap all clients in ClientSupervisor.props!!
   def HeliosInit(implicit system: ActorSystem = ActorSystem("Main")): ActorRef = {
 
     def fcProps(fcinfo: Seq[FlightControllerInfo]): Seq[(Props, String)] = {
@@ -53,7 +54,8 @@ object Main extends App {
       serialProps(config.serialports) ++
       gcProps(config.groundcontrols)
 
-    system.actorOf(ClientReceptionist.props(props))
+    //system.actorOf(ClientReceptionist.props(props))
+    ???
   }
 
   HeliosInit

@@ -17,34 +17,28 @@ import helios.core.clients.DataMessages.WriteMAVLink
 import helios.types.ClientTypes.ClientType
 
 object ClientReceptionist {
-  //TODO: fix supervision strategy for UARTs
-  val defaultStrategy =
-        OneForOneStrategy(maxNrOfRetries = 100,
-      withinTimeRange = 1 seconds,
-      loggingEnabled = true) {
-      case _: java.io.IOException => Restart
-      case _: PortInUseException => Restart
-      case _: NoSuchPortException => Stop
-      case _: NotImplementedError => Resume
-      case e => Restart
-    }
+  val restartStrategy = OneForOneStrategy(maxNrOfRetries = 100,
+    withinTimeRange = 1 seconds,
+    loggingEnabled = false) {
+    case _: Exception => Restart
+  }
 
-  def props(clientProps: Iterable[(Props, String)], supervisorStrategy: SupervisorStrategy = defaultStrategy): Props =
-    Props(new ClientReceptionist(clientProps, supervisorStrategy))
+  def props(clientInfo: Iterable[ActorRefFactory => ActorRef], supervisorStrategy: SupervisorStrategy = restartStrategy): Props =
+    Props(new ClientReceptionist(clientInfo, supervisorStrategy))
 }
 
-class ClientReceptionist(clientProps: Iterable[(Props, String)], override val supervisorStrategy: SupervisorStrategy) extends Actor {
+class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], override val supervisorStrategy: SupervisorStrategy) extends Actor {
 
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
-  val clients = clientProps.map(p => context watch context.actorOf(p._1, p._2))
+  val clients = clientInfo.map(a => context watch a(context))
 
   def flightcontrollers(clients: Set[ClientType] = Set.empty) = {
     clients
   }
 
   def updateSubscriptions(activeClients: Subscribers) {
-    activeClients foreach(c => c.client ! SetSubscribers(activeClients.filter(!_.equals(c))))
+    activeClients foreach (c => c.client ! SetSubscribers(activeClients.filter(!_.equals(c))))
   }
 
   override def preStart() = {

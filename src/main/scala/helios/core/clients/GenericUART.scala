@@ -18,7 +18,7 @@ object GenericUART {
 }
 
 //TODO: Register
-class GenericUART(val clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings)
+class GenericUART(override val clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings)
   extends Client {
 
   import Subscribers._

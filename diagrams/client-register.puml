@@ -4,26 +4,37 @@ skinparam backgroundColor #F4F4F4
 hide footbox
 '''''
 
-actor "API User" as User
-participant "API" as Client <<Library>>
 
-box "Core-Runtime"
-    participant Receptionist <<Actor>>
-    participant ClientHandler <<Actor>>
-end box
+participant ClientReceptionist as recep <<Actor>>
+participant ClientSupervisor as super <<Actor>>
 
-User -> Client: Connect
-activate Client
-Client -> Receptionist: Register(client: ActorRef): Msg
+participant "Client" as client <<Client>>
 
-activate Receptionist
-Receptionist -> Receptionist: new ClientHandler(client: ActorRef)
-Receptionist --> ClientHandler: Allocates
-deactivate Receptionist
+-> recep: allocate
+activate recep
+recep -> super: context actorOf
+activate super
+recep -> super: context watch
 
-activate ClientHandler
-ClientHandler --> Client: [OnStart] Registered: Msg
-deactivate ClientHandler
+super -> client: context actorOf
+activate client
+super -> client: context watch
 
-Client --> User: Connected
+client -> client: initialize
+client -> super: m@Register(ClientType)
+super -> recep: forward m
+
+recep -> super: m@Registered(ClientType)
+super -> client: forward m
+
+recep -> super: m@SetSubscribers(subscribers)
+super -> client: forward m
+
+client -> client: Subscribers = \nsubscribers
+
+deactivate recep
+deactivate client
+deactivate super
+
+
 @enduml

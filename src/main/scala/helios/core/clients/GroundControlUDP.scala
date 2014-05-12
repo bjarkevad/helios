@@ -40,9 +40,7 @@ class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: A
 
   override def receive: Receive = unbound()
 
-  def publishTargets(subscribers: Subscribers): Subscribers = {
-    subscribers
-  }
+  def publishTargets(subscribers: Subscribers): Subscribers = subscribers
 
   def unbound(connection: Option[ActorRef] = None): Receive = {
     case UdpConnected.Connected =>
