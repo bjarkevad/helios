@@ -3,7 +3,6 @@ package helios.examples
 import helios.api.HeliosLocal
 import scala.language.postfixOps
 import helios.api.HeliosAPI._
-import helios.api.Streams._
 import helios.api.HeliosAPI.AttitudeDeg
 import scala.collection.mutable
 
@@ -33,8 +32,9 @@ object Joystick {
 
   val HeliosApp = HeliosLocal()
   val Helios = HeliosApp.Helios
+  val Streams = HeliosApp.Streams
 
-  Helios.uartStream.subscribe {
+  HeliosApp.Streams.uartStream.subscribe {
     _.foreach {
       b =>
         joystickHandler(b) match {

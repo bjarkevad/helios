@@ -16,8 +16,6 @@ with TypedActor.Receiver
 with TypedActor.PreStart
 with TypedActor.PostStop {
 
-  import Streams._
-
   override lazy val Helios: HeliosAPI = {
     Await.result(
       ask(clientReceptionist, RegisterAPIClient(API(TypedActor.context.self)))(3 seconds).mapTo[HeliosAPI],
@@ -43,9 +41,9 @@ with TypedActor.PostStop {
     message match {
       case PublishMAVLink(m) =>
         if(m.componentId == 1)
-          gcMlStream onNext m
+          Streams.gcMlStream onNext m
         else
-          fcMlStream onNext m
+          Streams.fcMlStream onNext m
 
       case m: SystemStatus =>
         m.status match {
@@ -55,16 +53,16 @@ with TypedActor.PostStop {
             criticalHandler()
           case _ =>
         }
-        statusStream onNext m
+        Streams.statusStream onNext m
 
       case m: SystemPosition =>
-        posStream onNext m
+        Streams.posStream onNext m
 
       case m: AttitudeRad =>
-        attStream onNext m
+        Streams.attStream onNext m
 
       case UARTData(data) =>
-        uStream onNext data
+        Streams.uStream onNext data
 
       case _ =>
     }

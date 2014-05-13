@@ -32,3 +32,5 @@ lib/*.gif
 lib/*.png
 lib/*.js
 lib/*.css
+
+helios.conf

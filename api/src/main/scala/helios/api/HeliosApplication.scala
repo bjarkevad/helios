@@ -8,12 +8,13 @@ import org.mavlink.messages.MAVLinkMessage
 
 
 trait HeliosApplication {
+  val Streams: Streams = new Streams()
   val Helios: HeliosAPI
   val scheduler: Scheduler
 }
 
 //TODO: Use BehaviorSubjects to cache the latest message for new subscribers
-object Streams {
+class Streams {
   private[api]
   lazy val statusStream: Subject[SystemStatus] = Subject()
 
@@ -32,23 +33,22 @@ object Streams {
   private [api]
   lazy val fcMlStream: Subject[MAVLinkMessage] = Subject()
 
-  implicit class StreamsImpl(val helios: HeliosAPI) {
-    lazy val systemStatusStream: Observable[SystemStatus] = statusStream
-    lazy val positionStream: Observable[SystemPosition] = posStream
-    lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
-    lazy val attitudeDegStream: Observable[AttitudeDeg] = attStream map {
-      a =>
-        AttitudeDeg(
-          Math.toDegrees(a.roll).toFloat,
-          Math.toDegrees(a.pitch).toFloat,
-          Math.toDegrees(a.yaw).toFloat
-        )
-    }
-
-    lazy val uartStream: Observable[ByteString] = uStream
-    lazy val groundControlMAVLinkStream: Observable[MAVLinkMessage] = gcMlStream
-    lazy val flightcontrollerMAVLinkStream: Observable[MAVLinkMessage] = fcMlStream
+  lazy val systemStatusStream: Observable[SystemStatus] = statusStream
+  lazy val positionStream: Observable[SystemPosition] = posStream
+  lazy val uartStream: Observable[ByteString] = uStream
+  lazy val groundControlMAVLinkStream: Observable[MAVLinkMessage] = gcMlStream
+  lazy val flightcontrollerMAVLinkStream: Observable[MAVLinkMessage] = fcMlStream
+  lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
+  lazy val attitudeDegStream: Observable[AttitudeDeg] = attStream map {
+    a =>
+      AttitudeDeg(
+        Math.toDegrees(a.roll).toFloat,
+        Math.toDegrees(a.pitch).toFloat,
+        Math.toDegrees(a.yaw).toFloat
+      )
   }
+
+  lazy val attitudeCommandStream: Observable[AttitudeRad] = ???
 }
 
 object Handlers {
