@@ -7,6 +7,7 @@ import helios.util.nio.FileOps
 import helios.types.ClientTypes._
 import helios.core.clients.Clients.ClientTypeProvider
 import helios.util.HeliosConfig._
+import org.slf4j.LoggerFactory
 
 object HeliosConfig {
 
@@ -24,12 +25,15 @@ object HeliosConfig {
 }
 
 class HeliosConfig(configPath: String) {
+  lazy val logger = LoggerFactory.getLogger(classOf[HeliosConfig])
+
   lazy val config: Option[Config] = {
+    logger.debug(s"Looking for config file: $configPath in ${System.getProperty("user.dir")}")
     val file =
       if (FileOps.exists(configPath))
         new File(configPath)
       else
-        throw new Exception(s"Config $configPath did not exist")
+        throw new Exception(s"Config ${System.getProperty("user.dir")} $configPath did not exist")
 
     val any = Try(ConfigFactory.parseFileAnySyntax(file).getConfig("helios"))
     val default = Try(ConfigFactory.load("helios").getConfig("helios"))
@@ -113,9 +117,10 @@ class HeliosConfig(configPath: String) {
       case v if FileOps.exists(v) => v
     }.getOrElse("/dev/null")
 
-    val baudrate: Int = Try(split.collectFirst {
-      case x => x.toInt
-    }).toOption.flatten.getOrElse(9600)
+    val baudrate: Int = split.collectFirst {
+      case x if Try(x.toInt).isSuccess =>
+        x.toInt
+    }.getOrElse(9600)
 
     val deviceType = split.collectFirst {
       case s if s != device && s != baudrate.toString => s

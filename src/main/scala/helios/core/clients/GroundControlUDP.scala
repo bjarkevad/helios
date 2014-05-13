@@ -11,7 +11,7 @@ import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
 import helios.messages.DataMessages.PublishMAVLink
 import helios.util.mavlink.MAVLink.convertToMAVLink
-import helios.messages.CoreMessages.{UnregisterClient, Registered, RegisterClient}
+import helios.messages.CoreMessages.{SetSubscribers, UnregisterClient, Registered, RegisterClient}
 import Clients._
 import helios.types.Subscribers
 import helios.core.clients.DataMessages.WriteMAVLink
@@ -87,6 +87,9 @@ class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: A
 
     case UdpConnected.Disconnected =>
       context stop self
+
+    case SetSubscribers(subs) =>
+      context become registered(connection, subs ++ subscribers)
 
     case m@_ =>
       logger.debug(s"Received something unhandled: $m")

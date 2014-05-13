@@ -100,6 +100,7 @@ class MAVLinkUART(val clientTypeProvider: ClientTypeProvider, uartManager: Actor
     //Thread.sleep(2)
 
     case WriteData(data) =>
+      logger.debug(s"Writing: $data")
       val dataBs = ByteString(data.getBytes)
       operator ! Serial.Write(dataBs, WriteAck(dataBs))
 
@@ -133,6 +134,7 @@ class MAVLinkUART(val clientTypeProvider: ClientTypeProvider, uartManager: Actor
       context stop self
 
     case SetSubscribers(subs) =>
+      logger.debug(s"Subscribers: $subs")
       context become opened(operator, primary, subs)
   }
 }

@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
 import helios.types.Subscribers.Subscribers
 import helios.core.clients.DataMessages.WriteMAVLink
-import helios.types.ClientTypes.ClientType
+import helios.types.ClientTypes.{API, ClientType}
 
 object ClientReceptionist {
   val restartStrategy = OneForOneStrategy(maxNrOfRetries = 100,
@@ -65,7 +65,7 @@ class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], over
           .typedActorOf(TypedProps(
           classOf[HeliosAPI], new HeliosAPIDefault("HeliosDefault", self, ct.client, 20)))
 
-      val ac = activeClients + ct
+      val ac = activeClients + API(TypedActor(context.system).getActorRefFor(hd))
       context become defaultReceive(ac)
 
       sender ! hd
