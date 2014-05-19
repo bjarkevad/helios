@@ -130,6 +130,7 @@ trait HeliosAPI {
 
   def land: Future[CommandResult]
 
+  //TODO: Add height to takeoff
   def takeOff: Future[CommandResult]
 
   def startMission(): Observable[MissionResult]
@@ -139,5 +140,3 @@ trait HeliosAPI {
 
 //trait HeliosPrivate {
 //}
-
-
