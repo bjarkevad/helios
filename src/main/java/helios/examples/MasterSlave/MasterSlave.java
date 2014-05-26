@@ -8,6 +8,7 @@ import rx.util.functions.Action1;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
 
 
 public class MasterSlave {
@@ -33,8 +34,8 @@ public class MasterSlave {
     }
 
     void init() {
-        local = HeliosLocal.apply();
-        localHelios = local.Helios();
+//        local = HeliosLocal.apply();
+//        localHelios = local.Helios();
 
         try {
             startUdp();
@@ -62,7 +63,7 @@ public class MasterSlave {
         DatagramSocket serverSocket = new DatagramSocket(11223);
         byte[] receiveData = new byte[8];
 
-        DatagramSocket brdsock = new DatagramSocket();
+        MulticastSocket brdsock = new MulticastSocket();
 
         while(true) {
             udpBroadcast(brdsock);
@@ -99,11 +100,12 @@ public class MasterSlave {
         return new String(receivePacket.getData());
     }
 
-    void udpBroadcast(DatagramSocket socket) throws Exception {
-        InetAddress group = InetAddress.getByName("10.192.47.255");
+    void udpBroadcast(MulticastSocket socket) throws Exception {
+        InetAddress group = InetAddress.getByName("225.4.5.6");
         byte[] data = ("HELIOS").getBytes();
         DatagramPacket broadcastPacket = new DatagramPacket(data, data.length, group, 12345) ;
-        socket.send(broadcastPacket);
+        socket.send(broadcastPacket, (byte)1);
+        System.out.println("Sent packet: " + broadcastPacket.getData().toString());
     }
 
     void takeControl() {
