@@ -32,18 +32,52 @@ public class MasterSlave {
     }
 
     void takeControl() {
-        localHelios.takeControl();
+        System.out.println("Take Control!");
+        try {
+            localHelios.takeControl();
 //        remoteHelios.takeControl();
+        } catch (Exception e) {
+
+        }
     }
 
     void arm() {
-        localHelios.armMotors();
+        System.out.println("Arm!");
+        try {
+
+            localHelios.armMotors();
 //        remoteHelios.armMotors();
+        } catch (Exception e) {
+
+        }
     }
 
     void disarm() {
-        localHelios.disarmMotors();
+        System.out.println("Disarm!");
+        try {
+            localHelios.disarmMotors();
 //        remoteHelios.disarmMotors();
+        } catch (Exception e) {
+
+        }
+    }
+
+    void takeOff() {
+        System.out.println("Take off!");
+        try {
+           localHelios.takeOff(0.5f);
+        } catch (Exception e) {
+
+        }
+    }
+
+    void land() {
+        System.out.println("Land!");
+        try {
+            localHelios.land();
+        } catch (Exception e) {
+
+        }
     }
 //        remote = HeliosRemote.apply("127.0.0.1", 12345);
 //        remoteHelios = remote.Helios();
@@ -95,19 +129,27 @@ public class MasterSlave {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    System.out.println("Received: " + res);
+                    //System.out.println("Received: " + res);
                     for (char c : res != null ? res.toCharArray() : new char[0]) {
                         switch (c) {
                             case 'a':
-                                takeControl();
-                                break;
-
-                            case 'b':
                                 arm();
                                 break;
 
-                            case 'c':
+                            case 'b':
                                 disarm();
+                                break;
+
+                            case 'c':
+                                takeOff();
+                                break;
+
+                            case 'd':
+                                land();
+                                break;
+
+                            case 'e':
+                                takeControl();
                                 break;
 
                             default:
@@ -148,9 +190,9 @@ public class MasterSlave {
         socket.setTimeToLive(1);
         socket.send(broadcastPacket);
 
-        System.out.print("Sent packet: " + broadcastPacket.getData());
-        for(byte c : broadcastPacket.getData())
-            System.out.print((char)c);
+        System.out.print("Sent packet: ");
+        for (byte c : broadcastPacket.getData())
+            System.out.print((char) c);
         System.out.print("\n");
     }
 }
