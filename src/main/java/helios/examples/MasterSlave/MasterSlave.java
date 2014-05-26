@@ -34,8 +34,8 @@ public class MasterSlave {
     }
 
     void init() {
-//        local = HeliosLocal.apply();
-//        localHelios = local.Helios();
+        local = HeliosLocal.apply();
+        localHelios = local.Helios();
 
         try {
             startUdp();
@@ -60,38 +60,49 @@ public class MasterSlave {
 //    };
 
     void startUdp() throws Exception {
-        DatagramSocket serverSocket = new DatagramSocket(11223);
+
+        final MulticastSocket brdsock = new MulticastSocket();
+
+        class broadcastRunnable implements Runnable {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        udpBroadcast(brdsock);
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        new Thread(new broadcastRunnable()).start();
+
+        DatagramSocket serverSocket = new DatagramSocket(12345);
         byte[] receiveData = new byte[8];
 
-        MulticastSocket brdsock = new MulticastSocket();
+        while (true) {
+            String res = udpLoop(serverSocket, receiveData);
+            System.out.println("Received: " + res);
+            for (char c : res.toCharArray()) {
+                switch (c) {
+                    case 'a':
+                        takeControl();
+                        break;
 
-        while(true) {
-            udpBroadcast(brdsock);
-            Thread.sleep(1000);
+                    case 'b':
+                        arm();
+                        break;
+
+                    case 'c':
+                        disarm();
+                        break;
+
+                    default:
+                        break;
+                }
+            }
         }
-
-//        while (true) {
-//            String res = udpLoop(serverSocket, receiveData);
-//            System.out.println("Received: " + res);
-////            for (char c : res.toCharArray()) {
-////                switch (c) {
-////                    case 'a':
-////                        takeControl();
-////                        break;
-////
-////                    case 'b':
-////                        arm();
-////                        break;
-////
-////                    case 'c':
-////                        disarm();
-////                        break;
-////
-////                    default:
-////                        break;
-////                }
-////            }
-//        }
     }
 
     String udpLoop(DatagramSocket socket, byte[] receive) throws Exception {
@@ -103,23 +114,23 @@ public class MasterSlave {
     void udpBroadcast(MulticastSocket socket) throws Exception {
         InetAddress group = InetAddress.getByName("225.4.5.6");
         byte[] data = ("HELIOS").getBytes();
-        DatagramPacket broadcastPacket = new DatagramPacket(data, data.length, group, 12345) ;
-        socket.send(broadcastPacket, (byte)1);
+        DatagramPacket broadcastPacket = new DatagramPacket(data, data.length, group, 12345);
+        socket.send(broadcastPacket, (byte) 1);
         System.out.println("Sent packet: " + broadcastPacket.getData().toString());
     }
 
     void takeControl() {
         localHelios.takeControl();
-        remoteHelios.takeControl();
+//        remoteHelios.takeControl();
     }
 
     void arm() {
         localHelios.armMotors();
-        remoteHelios.armMotors();
+//        remoteHelios.armMotors();
     }
 
     void disarm() {
         localHelios.disarmMotors();
-        remoteHelios.disarmMotors();
+//        remoteHelios.disarmMotors();
     }
 }
