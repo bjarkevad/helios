@@ -7,6 +7,7 @@ import rx.util.functions.Action1;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 
 public class MasterSlave {
@@ -58,37 +59,51 @@ public class MasterSlave {
 //    };
 
     void startUdp() throws Exception {
-        DatagramSocket serverSocket = new DatagramSocket(9876);
+        DatagramSocket serverSocket = new DatagramSocket(11223);
         byte[] receiveData = new byte[8];
 
-        while (true) {
-            String res = udpLoop(serverSocket, receiveData);
-            System.out.println("Received: " + res);
-//            for (char c : res.toCharArray()) {
-//                switch (c) {
-//                    case 'a':
-//                        takeControl();
-//                        break;
-//
-//                    case 'b':
-//                        arm();
-//                        break;
-//
-//                    case 'c':
-//                        disarm();
-//                        break;
-//
-//                    default:
-//                        break;
-//                }
-//            }
+        DatagramSocket brdsock = new DatagramSocket();
+
+        while(true) {
+            udpBroadcast(brdsock);
+            Thread.sleep(1000);
         }
+
+//        while (true) {
+//            String res = udpLoop(serverSocket, receiveData);
+//            System.out.println("Received: " + res);
+////            for (char c : res.toCharArray()) {
+////                switch (c) {
+////                    case 'a':
+////                        takeControl();
+////                        break;
+////
+////                    case 'b':
+////                        arm();
+////                        break;
+////
+////                    case 'c':
+////                        disarm();
+////                        break;
+////
+////                    default:
+////                        break;
+////                }
+////            }
+//        }
     }
 
     String udpLoop(DatagramSocket socket, byte[] receive) throws Exception {
         DatagramPacket receivePacket = new DatagramPacket(receive, receive.length);
         socket.receive(receivePacket);
         return new String(receivePacket.getData());
+    }
+
+    void udpBroadcast(DatagramSocket socket) throws Exception {
+        InetAddress group = InetAddress.getByName("10.192.47.255");
+        byte[] data = ("HELIOS").getBytes();
+        DatagramPacket broadcastPacket = new DatagramPacket(data, data.length, group, 12345) ;
+        socket.send(broadcastPacket);
     }
 
     void takeControl() {

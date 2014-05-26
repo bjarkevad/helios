@@ -14,7 +14,19 @@ import org.slf4j.LoggerFactory
 import com.github.jodersky.flow.{NoSuchPortException, PortInUseException}
 import helios.types.Subscribers.Subscribers
 import helios.core.clients.DataMessages.WriteMAVLink
-import helios.types.ClientTypes.{API, ClientType}
+import helios.types.ClientTypes._
+import helios.messages.CoreMessages.RegisterClient
+import helios.messages.CoreMessages.UnregisterClient
+import helios.messages.DataMessages.PublishMAVLink
+import helios.messages.CoreMessages.Unregistered
+import helios.types.ClientTypes.FlightController
+import helios.core.clients.DataMessages.WriteMAVLink
+import helios.messages.CoreMessages.RegisterAPIClient
+import akka.actor.OneForOneStrategy
+import helios.types.ClientTypes.GroundControl
+import helios.messages.CoreMessages.Registered
+import helios.types.ClientTypes.API
+import helios.messages.CoreMessages.SetSubscribers
 
 object ClientReceptionist {
   val restartStrategy = OneForOneStrategy(maxNrOfRetries = 100,
@@ -33,12 +45,41 @@ class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], over
 
   val clients = clientInfo.map(a => context watch a(context))
 
-  def flightcontrollers(clients: Set[ClientType] = Set.empty) = {
-    clients
+  def subscriptionFilter(clientType: ClientType, clients: Subscribers): Subscribers = clientType match {
+    case API(_) => clients.filter {
+      case FlightController(_) => true
+      case GenericSerialPort(_) => true
+      case MAVLinkSerialPort(_) => true
+      case _ => false
+    }
+
+    case FlightController(_) => clients.filter {
+      case API(_) => true
+      case GroundControl(_) => true
+      case _ => false
+    }
+
+    case GroundControl(_) => clients.filter {
+      case FlightController(_) => true
+      case _ => false
+    }
+
+    case MAVLinkSerialPort(_) => clients.filter {
+      case API(_) => true
+      case _ => false
+    }
+
+    case GenericSerialPort(_) => clients.filter {
+      case API(_) => true
+      case _ => false
+    }
   }
 
   def updateSubscriptions(activeClients: Subscribers) {
-    activeClients foreach (c => c.client ! SetSubscribers(activeClients.filter(!_.equals(c))))
+    activeClients foreach {
+      c =>
+        c.client ! SetSubscribers(subscriptionFilter(c, activeClients))
+    }
   }
 
   override def preStart() = {
@@ -48,7 +89,7 @@ class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], over
   def receive = defaultReceive()
 
   //TODO: uart ! SetPrimary ???
-  def defaultReceive(activeClients: Set[ClientType] = Set.empty): Receive = {
+  def defaultReceive(activeClients: Subscribers = Set.empty): Receive = {
     case RegisterClient(ct) =>
       val ac = activeClients + ct
       context become defaultReceive(ac)
