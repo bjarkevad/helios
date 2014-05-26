@@ -56,6 +56,8 @@ object HeliosAPI {
 
   case class ByAltitude() extends ControlMode
 
+  type Meters = Float
+
 }
 
 trait HeliosAPI {
@@ -70,11 +72,11 @@ trait HeliosAPI {
 
   def writeToUart(data: String): Unit
 
-  def getFlightMode: Future[FlightMode] //System flightmode
-
 //  def setStartUpHandler(f: () => Unit): Unit
 //
 //  def setShutDownHandler(f: () => Unit): Unit
+
+  def systemStatus: Option[SystemStatus]
 
   def calibrateSensors: Future[CommandResult]
 
@@ -82,17 +84,11 @@ trait HeliosAPI {
 
   def disarmMotors: Future[CommandResult]
 
-  def systemStatus: Option[SystemStatus]
-
   def takeControl(): Unit
 
   def leaveControl(): Unit
 
-  def altitude: Future[Altitude]
-
   //  def setAltitude(altitude: Altitude): Future[CommandResult] //setAltitude(1 meter) //* //Fixed heigth
-
-  def attitude: Future[Attitude]
 
   def setAttitude(attitude: Attitude, thrust: Thrust): Future[CommandResult]
 
@@ -104,39 +100,18 @@ trait HeliosAPI {
 
   def getParameterList: Future[List[(ParameterId, ParameterValue)]]
 
-  def setSystemInformation(systemInformation: SystemInformation): Unit
-
-  def getSystemInformation: SystemInformation
-
-  def setControlMode(controlMode: ControlMode): Unit
-
-  def getControlMode: Future[ControlMode]
-
-  def flyLeft(distance: Distance): Future[CommandResult]
-
-  def flyRight(distance: Distance): Future[CommandResult]
-
-  def flyForwards(distance: Distance): Future[CommandResult]
-
-  def flyBackwards(distance: Distance): Future[CommandResult]
-
   def flyTo(location: Position): Future[CommandResult]
-
-  def location: Future[Position]
-
-  def rotateLeft(degrees: Degrees): Future[CommandResult]
-
-  def rotateRight(degrees: Degrees): Future[CommandResult]
 
   def land: Future[CommandResult]
 
-  //TODO: Add height to takeoff
-  def takeOff: Future[CommandResult]
+  def takeOff(height: Meters): Future[CommandResult]
 
-  def startMission(): Observable[MissionResult]
-
-  def newMission(mission: Mission): Unit
+//  def startMission(): Observable[MissionResult]
+//
+//  def newMission(mission: Mission): Unit
 }
 
 //trait HeliosPrivate {
 //}
+
+

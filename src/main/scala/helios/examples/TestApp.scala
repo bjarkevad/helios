@@ -5,6 +5,7 @@ import scala.language.postfixOps
 import helios.api.HeliosAPI.{CommandFailure, CommandSuccess, CommandResult}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import helios.api.Streams._
 
 object TestApp extends App {
 

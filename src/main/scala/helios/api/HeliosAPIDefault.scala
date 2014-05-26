@@ -125,18 +125,16 @@ with TypedActor.Receiver {
 
   override def writeToUart(data: String): Unit = serialports ! WriteData(data)
 
-  override def newMission(mission: Mission): Unit = ???
-
-  override def startMission(): Observable[MissionResult] = ???
-
-  override def takeOff: Future[CommandResult] = Future {
+  override def takeOff(height: Meters): Future[CommandResult] = Future {
     val msg = new msg_command_long(systemID, 0)
     msg.command = MAV_CMD.MAV_CMD_NAV_TAKEOFF
     msg.param1 = 0 //pitch
     msg.param4 = 0 //yaw
     msg.param5 = 0 //latitude
     msg.param6 = 0 //longtitude
-    msg.param7 = 2 //altitude
+    msg.param7 = height //altitude
+
+    flightcontrollers ! WriteMAVLink(msg)
 
     CommandSuccess()
   }
@@ -154,29 +152,7 @@ with TypedActor.Receiver {
     CommandSuccess()
   }
 
-  override def rotateRight(degrees: Degrees): Future[CommandResult] = ???
-
-  override def rotateLeft(degrees: Degrees): Future[CommandResult] = ???
-
-  override def location: Future[Position] = ???
-
   override def flyTo(location: Position): Future[CommandResult] = ???
-
-  override def flyBackwards(distance: Distance): Future[CommandResult] = ???
-
-  override def flyForwards(distance: Distance): Future[CommandResult] = ???
-
-  override def flyRight(distance: Distance): Future[CommandResult] = ???
-
-  override def flyLeft(distance: Distance): Future[CommandResult] = ???
-
-  override def getControlMode: Future[ControlMode] = ???
-
-  override def setControlMode(controlMode: ControlMode): Unit = ???
-
-  override def getSystemInformation: SystemInformation = ???
-
-  override def setSystemInformation(systemInformation: SystemInformation): Unit = ???
 
   override def getParameterList: Future[List[(ParameterId, ParameterValue)]] = ???
 
@@ -211,14 +187,6 @@ with TypedActor.Receiver {
       case _ =>
         CommandFailure(new Exception("Unknown attitude parameter"))
     }
-  }
-
-  override def attitude: Future[Attitude] = Future {
-    ???
-  }
-
-  override def altitude: Future[Altitude] = Future {
-    ???
   }
 
   //Application controlled
@@ -271,12 +239,11 @@ with TypedActor.Receiver {
       cmd.param6 = 1
 
       flightcontrollers ! WriteMAVLink(cmd)
+      Thread.sleep(5000)
       CommandSuccess()
     }
     else CommandFailure(new Exception(cannotMsg("calibrate sensors", sysStatus)))
   }
-
-  override def getFlightMode: Future[FlightMode] = ???
 
   override def systemStatus: Option[SystemStatus] = sysStatus
 
