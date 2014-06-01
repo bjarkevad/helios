@@ -12,12 +12,20 @@ import Clients.{ClientTypeProvider, Client}
 import helios.types.Subscribers
 import helios.core.clients.DataMessages.WriteData
 
+/**
+ * Companion object containing a props function used for initialization
+ */
 object GenericUART {
   def props(clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings): Props =
     Props(new GenericUART(clientTypeProvider, uartManager, settings))
 }
 
-//TODO: Register
+/**
+ * A client which represents a UART which sends and receives raw bytes
+ * @param clientTypeProvider The factory function used to determine the type of the client
+ * @param uartManager The connection manager
+ * @param settings Settings used for the UART (baudrate, port, etc)
+ */
 class GenericUART(override val clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings)
   extends Client {
 
@@ -35,6 +43,10 @@ class GenericUART(override val clientTypeProvider: ClientTypeProvider, uartManag
 
   override def receive: Receive = default
 
+  /**
+   * Initial state of the client, not connected to the serial port
+   * @return
+   */
   def default: Receive = {
     case Serial.CommandFailed(cmd, reason) =>
       logger.warn(s"Failed to open serial port: $reason")
@@ -52,6 +64,12 @@ class GenericUART(override val clientTypeProvider: ClientTypeProvider, uartManag
       operator ! Serial.Register(self)
   }
 
+  /**
+   * Final state of the client, connected to the serial port
+   * @param operator the serial operator used for communication with the port
+   * @param subscribers subscribers of the client
+   * @return
+   */
   def opened(operator: ActorRef, subscribers: Subscribers = NoSubscribers): Receive = {
     case m@Serial.Received(data) =>
       subscribers ! m

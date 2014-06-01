@@ -7,6 +7,9 @@ import akka.util.ByteString
 import org.mavlink.messages.MAVLinkMessage
 
 
+/**
+ * Trait used to implement the top level of the API
+ */
 trait HeliosApplication {
   val Streams: Streams = new Streams()
   val Helios: HeliosAPI
@@ -33,12 +36,33 @@ class Streams {
   private [api]
   lazy val fcMlStream: Subject[MAVLinkMessage] = Subject()
 
+  /**
+   * A stream of system status
+   */
   lazy val systemStatusStream: Observable[SystemStatus] = statusStream
+  /**
+   * A stream of system positions
+   */
   lazy val positionStream: Observable[SystemPosition] = posStream
+  /**
+   * A stream from uarts on the system
+   */
   lazy val uartStream: Observable[ByteString] = uStream
+  /**
+   * A stream of MAVLink Messages sent from ground stations
+   */
   lazy val groundControlMAVLinkStream: Observable[MAVLinkMessage] = gcMlStream
+  /**
+   * A stream of MAVLink messages sent from the flight controller
+   */
   lazy val flightcontrollerMAVLinkStream: Observable[MAVLinkMessage] = fcMlStream
+  /**
+   * A stream of all measurede attitudes in radians
+   */
   lazy val attitudeRadStream: Observable[AttitudeRad] = attStream
+  /**
+   * A stream of all measurede attitudes in degrees
+   */
   lazy val attitudeDegStream: Observable[AttitudeDeg] = attStream map {
     a =>
       AttitudeDeg(

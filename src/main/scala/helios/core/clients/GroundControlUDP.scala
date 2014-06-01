@@ -21,6 +21,12 @@ object GroundControlUDP {
     Props(new GroundControlUDP(clientTypeProvider, udpManager, address))
 }
 
+/**
+ * A Client used to connect to UDP
+ * @param clientTypeProvider the type provider function used to indicate the type of the client
+ * @param udpManager the system's UDP manager actor
+ * @param address the IP address to bind to
+ */
 class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: ActorRef, address: InetSocketAddress)
   extends Client with Stash {
 
@@ -40,8 +46,18 @@ class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: A
 
   override def receive: Receive = unbound()
 
+  /**
+   * Filters subscribers to only the ones interested in messages from this Client, everyone for now
+   * @param subscribers the subscribers to filter
+   * @return the filtered subscribers
+   */
   def publishTargets(subscribers: Subscribers): Subscribers = subscribers
 
+  /**
+   * The client's unbound, initial state. Not connected to the UDP socket yet
+   * @param connection the connection
+   * @return
+   */
   def unbound(connection: Option[ActorRef] = None): Receive = {
     case UdpConnected.Connected =>
       val connection = sender
@@ -56,6 +72,11 @@ class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: A
       stash()
   }
 
+  /**
+   * Waiting for registration with the Receptionist
+   * @param connection the connection
+   * @return
+   */
   def awaitingRegistration(connection: ActorRef): Receive = {
     case Registered(ct) =>
       context become registered(connection)
@@ -65,6 +86,12 @@ class GroundControlUDP(val clientTypeProvider: ClientTypeProvider, udpManager: A
       stash()
   }
 
+  /**
+   * The final state where the client is connected and registered
+   * @param connection the connection
+   * @param subscribers the subscribers
+   * @return
+   */
   def registered(connection: ActorRef, subscribers: Subscribers = NoSubscribers): Receive = {
     case msg@UdpConnected.Received(v) =>
       convertToMAVLink(v) match {

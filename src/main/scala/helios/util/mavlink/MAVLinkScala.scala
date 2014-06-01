@@ -4,6 +4,7 @@ import org.mavlink.messages.MAVLinkMessage
 import org.mavlink.messages.common._
 import scala.util.{Failure, Success, Try}
 
+@deprecated
 object MAVLinkScala {
 
   implicit class MsgToScala(val msg: MAVLinkMessage) {

@@ -28,6 +28,9 @@ import helios.messages.CoreMessages.Registered
 import helios.types.ClientTypes.API
 import helios.messages.CoreMessages.SetSubscribers
 
+/**
+ * Companion object for ClientReceptionist, containing a default strategy and a props method used for initialization
+ */
 object ClientReceptionist {
   val restartStrategy = OneForOneStrategy(maxNrOfRetries = 100,
     withinTimeRange = 1 seconds,
@@ -39,12 +42,23 @@ object ClientReceptionist {
     Props(new ClientReceptionist(clientInfo, supervisorStrategy))
 }
 
+/**
+ * The heart and top-level actor of the system
+ * @param clientInfo an iterable containing all factory functions used to create configured clients
+ * @param supervisorStrategy the supervisor strategy used on clients
+ */
 class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], override val supervisorStrategy: SupervisorStrategy) extends Actor {
 
   val logger = LoggerFactory.getLogger(classOf[ClientReceptionist])
 
   val clients = clientInfo.map(a => context watch a(context))
 
+  /**
+   * Defines which clients talks to the ClientType parsed as an argument
+   * @param clientType the type of the Client which needs to be checked
+   * @param clients the clients which should be checked against
+   *@return the members of clients, which clientType should be informed of
+   */
   def subscriptionFilter(clientType: ClientType, clients: Subscribers): Subscribers = clientType match {
     case API(_) => clients.filter {
       case FlightController(_) => true
@@ -75,6 +89,10 @@ class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], over
     }
   }
 
+  /**
+   * Updates all subscriptions in the system
+   * @param activeClients the clients which needs to be informed about subscriptions
+   */
   def updateSubscriptions(activeClients: Subscribers) {
     activeClients foreach {
       c =>
@@ -89,6 +107,11 @@ class ClientReceptionist(clientInfo: Iterable[ActorRefFactory => ActorRef], over
   def receive = defaultReceive()
 
   //TODO: uart ! SetPrimary ???
+  /**
+   * The default and only receive function
+   * @param activeClients the currently active clients, new clients are added by RegisterAPIClient
+   * @return
+   */
   def defaultReceive(activeClients: Subscribers = Set.empty): Receive = {
     case RegisterClient(ct) =>
       val ac = activeClients + ct

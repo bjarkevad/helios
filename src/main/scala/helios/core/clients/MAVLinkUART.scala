@@ -22,6 +22,9 @@ import helios.util.Privileged.PrivilegedLike
 import helios.core.clients.DataMessages._
 import helios.core.clients.Clients._
 
+/**
+ * Companion object containing props functions used for initialization
+ */
 object MAVLinkUART {
   def props(clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings): Props = {
     implicit val priv = helios.util.Privileged.PrivilegedLike.PrivilegedMAVLink
@@ -34,6 +37,13 @@ object MAVLinkUART {
   }
 }
 
+/**
+ * A Client which connects to a UART and reads and writes MAVLink through this
+ * @param clientTypeProvider The factory function used to determine the type of the client
+ * @param uartManager The uart connection manager
+ * @param settings The settings for the serial port
+ * @param mlPriv Used to determine if a MAVLink command is privileged or not
+ */
 class MAVLinkUART(val clientTypeProvider: ClientTypeProvider, uartManager: ActorRef, settings: SerialSettings)
                  (implicit mlPriv: PrivilegedLike[MAVLinkMessage]) extends Client with Stash {
 
@@ -51,6 +61,10 @@ class MAVLinkUART(val clientTypeProvider: ClientTypeProvider, uartManager: Actor
 
   override def receive: Receive = default
 
+  /**
+   * the default state, not connected to the serial port
+   * @return
+   */
   def default: Receive = {
     case Serial.CommandFailed(cmd, reason) =>
       logger.warn(s"Failed to open serial port: $reason")
@@ -77,6 +91,13 @@ class MAVLinkUART(val clientTypeProvider: ClientTypeProvider, uartManager: Actor
       stash()
   }
 
+  /**
+   * The final state, client is connected to the serial port
+   * @param operator The UART operator, used for communicating with the serial port
+   * @param primary The primary Client, used to determine if an actor has access to privileged mavlink commands or not
+   * @param subscribers Subscribers of the client's messages
+   * @return
+   */
   def opened(operator: ActorRef, primary: ActorRef, subscribers: Subscribers): Receive = {
     //TODO: Fix this mess
     case Serial.Received(data) =>

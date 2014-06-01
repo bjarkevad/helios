@@ -11,6 +11,10 @@ import helios.messages.CoreMessages.RegisterAPIClient
 import scala.concurrent.duration._
 import helios.types.ClientTypes.API
 
+/**
+ * The implementation of the local API
+ * @param clientReceptionist The receptionist of the system to which a connection should be made
+ */
 class HeliosLocal(clientReceptionist: ActorRef) extends HeliosApplication
 with TypedActor.Receiver
 with TypedActor.PreStart
@@ -73,6 +77,10 @@ object HeliosLocal {
 
   import helios.Main.HeliosInit
 
+  /**
+   * Creates a connection to a local system
+   * @return the new instance of HeliosLocal
+   */
   def apply(): HeliosApplication = {
     implicit val as = ActorSystem("HeliosAPI")
     val recep = HeliosInit
