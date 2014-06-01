@@ -13,17 +13,26 @@ import collection.mutable.Buffer
 import java.nio.charset.StandardCharsets
 
 object AsyncFileChannel {
+  /**
+   * Creates a new AsynchronousFileChannel
+   * @param path The path of the file to open
+   * @param openOptions The open options (readonly etc.)
+   * @param executorService
+   * @return Some(AsynchronousFileChannel) if the file is opened successfully, None otherwise
+   */
   def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption], executorService: ExecutorService): Option[AsynchronousFileChannel] = {
     Try(Paths.get(path)).
       flatMap(f => Try(AsynchronousFileChannel.open(f, setAsJavaSetConverter(openOptions).asJava, executorService))).toOption
   }
 
-  def apply(path: String, openOptions: scala.collection.Set[StandardOpenOption]): Option[AsynchronousFileChannel] = {
-    AsyncFileChannel(path, openOptions, Executors.newScheduledThreadPool(4))
-  }
-
-  def apply(path: String, openOption: StandardOpenOption): Option[AsynchronousFileChannel] = {
-    AsyncFileChannel(path, Set(openOption), Executors.newScheduledThreadPool(4))
+  /**
+   * Creates a new AsynchronousFileChannel
+   * @param path The path of the file to open
+   * @param openOptions The open options (readonly etc.)
+   * @return Some(AsynchronousFileChannel) if the file is opened successfully, None otherwise
+   */
+  def apply(path: String, openOptions: StandardOpenOption*): Option[AsynchronousFileChannel] = {
+    AsyncFileChannel(path, openOptions.toSet, Executors.newScheduledThreadPool(4))
   }
 
   //TODO: Rethink naming of operations
@@ -61,7 +70,7 @@ object AsyncFileChannel {
       val p: Promise[(Int, A)] = Promise()
 
       Try(afc.write(ByteBuffer.wrap(data.getBytes), 0, attachment, CompletionHandler[Integer, A](
-        v => p.complete(Try(v, attachment)), e => p.failure(e))
+        v => p.complete(Try(v.toInt, attachment)), e => p.failure(e))
       )) recover {
         case e: Throwable => p.failure(e)
       }

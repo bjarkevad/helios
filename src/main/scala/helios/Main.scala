@@ -1,20 +1,28 @@
 package helios
-
+import core.clients.{GroundControlUDP, MAVLinkUART}
+import core.{ClientReceptionist, ClientSupervisor}
+import util.HeliosConfig.{GroundControlInfo, SerialInfo, FlightControllerInfo}
 import akka.actor.{ActorRefFactory, ActorRef, ActorSystem}
-import helios.core.clients.{GroundControlUDP, MAVLinkUART}
 import com.github.jodersky.flow.{Parity, SerialSettings, Serial}
 import akka.io.{UdpConnected, IO}
 import java.net.InetSocketAddress
-import helios.util.HeliosConfig.{GroundControlInfo, SerialInfo, FlightControllerInfo}
-import helios.core.{ClientSupervisor, ClientReceptionist}
 
 object Main extends App {
   def HeliosInit(implicit system: ActorSystem = ActorSystem("Main")): ActorRef = {
 
+    /**
+     * Helper function that wraps a client in a supervisor
+     * @param client the actor factory which should be wrapped
+     * @return a new actor factory which creates a ClientSupervisor in addition to the client given in the first parameter
+     */
     def wrapSupervisor(client: ActorRefFactory => ActorRef): ActorRefFactory => ActorRef = {
       (x: ActorRefFactory) => x.actorOf(ClientSupervisor.props(client))
     }
-
+    /**
+     * Turns a sequence of FlightControllerInfos into it's coresponding factory function
+     * @param fcinfo the sequence of FlightControllerInfos that should be turned into factories
+     * @return the sequence of factory functions which create the correct actors when invoked
+     */
     def fc(fcinfo: Seq[FlightControllerInfo]): Seq[ActorRefFactory => ActorRef] = {
       fcinfo.map { i =>
         val props = MAVLinkUART.props(
@@ -27,6 +35,11 @@ object Main extends App {
       }
     }
 
+    /**
+     * Turns a sequence of SerialInfos into it's coresponding factory function
+     * @param serialInfo the sequence of SerialInfos that should be turned into factories
+     * @return the sequence of factory functions which create the correct actors when invoked
+     */
     def serial(serialInfo: Seq[SerialInfo]): Seq[ActorRefFactory => ActorRef] = {
       //TODO: missing generic UART?
       serialInfo.map { i =>
@@ -40,6 +53,11 @@ object Main extends App {
       }
     }
 
+    /**
+     * Turns a sequence of GroundControlInfos into it's coresponding factory function
+     * @param groundControlInfo the sequence of GroundControlInfos that should be turned into factories
+     * @return the sequence of factory functions which create the correct actors when invoked
+     */
     def gc(groundControlInfo: Seq[GroundControlInfo]): Seq[ActorRefFactory => ActorRef] = {
       groundControlInfo.map { i =>
         val props = GroundControlUDP.props(
@@ -52,7 +70,7 @@ object Main extends App {
       }
     }
 
-    import helios.util.HeliosConfig
+    import util.HeliosConfig
     val config = HeliosConfig()
 
     val clients: Seq[ActorRefFactory => ActorRef] = fc(config.flightcontrollers) ++
@@ -62,6 +80,7 @@ object Main extends App {
     system.actorOf(ClientReceptionist.props(clients))
   }
 
+  //Initialize the system!
   HeliosInit
 }
 

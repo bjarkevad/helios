@@ -17,7 +17,7 @@ import scala.language.postfixOps
 class AsyncFileChannelTest extends FlatSpec with Matchers {
   "AsyncFileChannel" should "write, with attachment, to a file correctly" in {
     val file = "./testfile"
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
+    val asyncFC = AsyncFileChannel(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
 
     if (asyncFC.isEmpty) assert(false)
     else {
@@ -41,7 +41,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
 
   it should "write, without attachment, to a file correctly" in {
     val file = "./testfile2"
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
+    val asyncFC = AsyncFileChannel(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
     if (asyncFC.isEmpty) assert(false)
     else {
       val f = asyncFC.get.writeAsync(this.hashCode.toString)
@@ -57,7 +57,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
 
   it should "fail to write if the file path is not accessible" in {
     val file = "/testfile"
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.CREATE, StandardOpenOption.WRITE))
+    val asyncFC = AsyncFileChannel(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
     asyncFC.isEmpty should be(true)
   }
 
@@ -67,7 +67,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     out.write("Testfile!")
     out.close()
 
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.READ))
+    val asyncFC = AsyncFileChannel(file, StandardOpenOption.READ)
     if (asyncFC.isEmpty) {
       assert(false)
     }
@@ -85,7 +85,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     out.write("Testfile!")
     out.close()
 
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
+    val asyncFC = AsyncFileChannel(file, StandardOpenOption.WRITE)
     if (asyncFC.isEmpty) {
       asyncFC.isEmpty should be(false)
     }
@@ -107,7 +107,7 @@ class AsyncFileChannelTest extends FlatSpec with Matchers {
     out.write("Testfile!")
     out.close()
 
-    val asyncFC = AsyncFileChannel(file, Set(StandardOpenOption.WRITE))
+    val asyncFC = AsyncFileChannel(file, StandardOpenOption.WRITE)
     if (asyncFC.isEmpty) {
       asyncFC.isEmpty should be(false)
     }

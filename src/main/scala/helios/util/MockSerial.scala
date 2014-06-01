@@ -8,12 +8,18 @@ import org.mavlink.messages._
 import helios.util.mavlink.MAVLink.convertToMAVLink
 import akka.util.ByteString
 
+/**
+ * contains props constructors
+ */
 object MockSerial {
   def props = Props(new MockSerial)
 }
 
 
 //TODO: Does not respond to ack requests
+/**
+ * A mock serial used for testing in situations where no real Flight Controller is available
+ */
 class MockSerial extends Actor {
 
   import scala.concurrent.duration._
@@ -28,6 +34,10 @@ class MockSerial extends Actor {
 
   var s = 0
 
+  /**
+   * Creates a MAVLink heartbeat with auto incrementing sequence number
+   * @return a new MAVLink heartbeat package represented by a ByteString
+   */
   def heartbeat: ByteString = {
     val hb = new msg_heartbeat(20, MAV_COMPONENT.MAV_COMP_ID_IMU)
     hb.sequence = s
@@ -55,6 +65,10 @@ class MockSerial extends Actor {
     ByteString(st.encode())
   }
 
+  /**
+   * Create a dummy MAVLink system position
+   * @return a system position MAVLink message represented by a ByteString
+   */
   def sysPos: ByteString = {
     val sp = new msg_global_position_int(20, 1)
     sp.time_boot_ms = timeBoot
@@ -69,6 +83,10 @@ class MockSerial extends Actor {
     ByteString(sp.encode())
   }
 
+  /**
+   * A runnable that emits a system position
+   * @param target the actor which should receive the system position
+   */
   class SysPos(target: ActorRef) extends Runnable {
     override def run(): Unit = target ! Serial.Received(sysPos)
   }
@@ -78,6 +96,11 @@ class MockSerial extends Actor {
 
   override def receive: Receive = opened(None)
 
+  /**
+   * Default state, ready to send and receive messages
+   * @param user currently unused
+   * @return
+   */
   def opened(user: Option[ActorRef]): Receive = {
     case Serial.Open(s) =>
       val y = sender

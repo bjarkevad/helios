@@ -9,24 +9,61 @@ import helios.core.clients.Clients.ClientTypeProvider
 import helios.util.HeliosConfig._
 import org.slf4j.LoggerFactory
 
+/**
+ * HeliosConfig companion object
+ */
 object HeliosConfig {
 
+  /**
+   * Represents information about a serial port
+   * @param clientTypeProvider factory that creates the client type
+   * @param device which serial device should be opnened, e.g. "/dev/ttyO1"
+   * @param baudrate the baudrate of the serial device
+   */
   case class SerialInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
 
+  /**
+   * Represents information about a Flight Controller
+   * @param clientTypeProvider factory that creates the client type
+   * @param device which serial device should be opened, e.g. "/dev/ttyO1"
+   * @param baudrate the baudrate of the serial device
+   */
   case class FlightControllerInfo(clientTypeProvider: ClientTypeProvider, device: String, baudrate: Int)
 
+  /**
+   * Represents information about a Ground Control
+   * @param clientTypeProvider factory that creates the client type
+   * @param address the IP address of the ground control
+   * @param port the port on which the ground control listens for incoming connections
+   */
   case class GroundControlInfo(clientTypeProvider: ClientTypeProvider, address: String, port: Int)
 
+  /**
+   * Creates a new instance of the HeliosConfig class, using the default location of the config file ("./helios.conf")
+   * @return returns the newly created instance of HeliosConfig
+   */
   def apply(): HeliosConfig =
     new HeliosConfig("./helios.conf")
 
+  /**
+   * Creates a new instance of the HeliosConfig class
+   * @param configPath the path of the config file, e.g. "/path/to/helios.conf"
+   * @return returns the newly created instance of HeliosConfig
+   */
   def apply(configPath: String): HeliosConfig =
     new HeliosConfig(configPath)
 }
 
+/**
+ * Represents a loaded config file, and operations on it
+ * @param configPath the path of the config file, e.g. "/path/to/helios.conf"
+ */
 class HeliosConfig(configPath: String) {
   lazy val logger = LoggerFactory.getLogger(classOf[HeliosConfig])
 
+  /**
+   * a lazy value containing the loaded config, falls back to "./helios.conf"
+   */
   lazy val config: Option[Config] = {
     logger.debug(s"Looking for config file: $configPath in ${System.getProperty("user.dir")}")
     val file =
@@ -49,10 +86,10 @@ class HeliosConfig(configPath: String) {
     config.toOption
   }
 
-
   lazy val serialPf: PartialFunction[(ClientTypeProvider, String, Int), SerialInfo] = {
     case (ctp, dev, baud) => SerialInfo(ctp, dev, baud)
   }
+
 
   lazy val serialports: Seq[SerialInfo] = {
     clientSettings(
@@ -110,6 +147,11 @@ class HeliosConfig(configPath: String) {
   }
 
   //TODO: Add support for FC CTP
+  /**
+   * Parses details about serial ports from the config file
+   * @param line the line in the config to parse
+   * @return information about the serial port in a triple
+   */
   def serialDetails(line: String): (ClientTypeProvider, String, Int) = {
     val split = line.split(' ').toList
 
@@ -133,6 +175,11 @@ class HeliosConfig(configPath: String) {
   }
 
   //TODO: Verify address and port
+  /**
+   * Parses details about ground controls from the config file
+   * @param line the line in the config to parse
+   * @return information about the ground control in a triple
+   */
   def gcDetails(line: String): (ClientTypeProvider, String, Int) = {
     val default = ("localhost", 14550)
 

@@ -172,7 +172,8 @@ public class MasterSlave {
             public void run() {
                 while (true) {
                     try {
-                        broadcastLoop(brdsock);
+                        InetAddress group = InetAddress.getByName("225.4.5.6");
+                        broadcastLoop(brdsock, group, 12345, "HELIOS");
                         Thread.sleep(1000);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -183,16 +184,15 @@ public class MasterSlave {
         new Thread(new broadcastRunnable()).start();
     }
 
-    void broadcastLoop(MulticastSocket socket) throws Exception {
-        InetAddress group = InetAddress.getByName("225.4.5.6");
-        byte[] data = ("HELIOS").getBytes();
-        DatagramPacket broadcastPacket = new DatagramPacket(data, data.length, group, 12345);
-        socket.setTimeToLive(1);
+    void broadcastLoop(MulticastSocket socket, InetAddress group, int port, String contents) throws Exception {
+        byte[] data = contents.getBytes();
+        DatagramPacket broadcastPacket = new DatagramPacket(data, data.length, group, port);
+        socket.setTimeToLive(10);
         socket.send(broadcastPacket);
 
         System.out.print("Sent packet: ");
         for (byte c : broadcastPacket.getData())
             System.out.print((char) c);
-        System.out.print("\n");
+        System.out.println(" on address: " + broadcastPacket.getAddress() + ":" + broadcastPacket.getPort());
     }
 }
